@@ -94,21 +94,18 @@ def load_model(m: str):
 
 
 def format_prompt(messages: List[ChatMessage], user_id: Optional[str] = None) -> str:
-    parts = ["The following is a conversation between a user and an AI assistant."]
+    parts = []
     if user_id and user_store:
         history = user_store.get_recent_conversations(user_id, n=MAX_HISTORY_CONVOS)
         if history:
-            for c in history:
-                parts.append(f"User: {c['prompt']}")
-                parts.append(f"Assistant: {c['completion']}")
+            parts.append("Context from previous conversation:")
+            for c in history[-3:]:
+                parts.append(f"- User asked: {c['prompt'][:100]}")
+                parts.append(f"- I responded: {c['completion'][:200]}")
+            parts.append("")
     for msg in messages:
-        if msg.role == "system":
-            parts.append(f"System: {msg.content}")
-        elif msg.role == "user":
-            parts.append(f"User: {msg.content}")
-        elif msg.role == "assistant":
-            parts.append(f"Assistant: {msg.content}")
-    parts.append("Assistant:")
+        if msg.role == "user":
+            parts.append(msg.content)
     return "\n".join(parts)
 
 
