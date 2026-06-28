@@ -28,6 +28,10 @@ desktop.ini
 .vscode/
 .idea/
 
+# Kaggle zip
+cortex-train/cortex_train_data.zip
+cortex-train/distilled_checkpoints/
+
 # Environment
 .env
 *.local
