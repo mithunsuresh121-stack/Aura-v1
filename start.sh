@@ -14,7 +14,7 @@ echo "  Model  : ${CORTEX_CHECKPOINT:-random init}"
 echo "  Data   : $CORTEX_DATA_DIR"
 echo ""
 
-python3 "$SCRIPT_DIR/cortex-core/src/server/main.py" \
+python3.9 "$SCRIPT_DIR/cortex-core/src/server/main.py" \
     --host 127.0.0.1 \
     --port 8080 \
     --checkpoint "$CORTEX_CHECKPOINT" &

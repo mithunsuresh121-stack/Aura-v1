@@ -18,9 +18,14 @@ SERVER="$BASE/cortex-core/src/server/pretrained_server.py"
 #   microsoft/phi-1_5                        (1.3B params, ~2.5GB, 0.2 tok/s)
 MODEL="${CORTEX_PRETRAINED_MODEL:-gpt2}"
 
-echo "Starting pretrained model server:"
-echo "  model: $MODEL"
+PORT="${CORTEX_PORT:-8081}"
 
-python3 "$SERVER" \
+echo "Starting Aura server:"
+echo "  model: $MODEL"
+echo "  port:  $PORT"
+echo "  api:   http://127.0.0.1:$PORT/v1/chat/completions"
+
+python3.9 "$SERVER" \
     --model "$MODEL" \
+    --port "$PORT" \
     "$@"

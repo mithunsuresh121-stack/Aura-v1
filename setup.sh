@@ -63,7 +63,8 @@ mkdir -p "$MODEL_DIR"
 
 if [ ! -f "$MODEL_DIR/final.pt" ]; then
     echo "No pre-trained model found. Run 'bash download_model.sh' to download a checkpoint,"
-    echo "or train your own with: cd cortex-train && $PYTHON train_v2.py"
+    echo "or train your own with: cd cortex-train && $PYTHON train_v2.py
+echo "  Or use the pretrained server: bash cortex-train/serve_pretrained.sh""
 else
     echo "[✓] Model checkpoint found: $MODEL_DIR/final.pt"
 fi

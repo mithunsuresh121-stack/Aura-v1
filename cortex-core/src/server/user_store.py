@@ -6,6 +6,7 @@ import json
 import time
 import threading
 from pathlib import Path
+from typing import Optional, List, Tuple
 
 import torch
 
@@ -23,7 +24,7 @@ class UserStore:
 
     # --- Embeddings ---
 
-    def get_embedding(self, user_id: str) -> torch.Tensor | None:
+    def get_embedding(self, user_id: str):
         path = self._user_dir(user_id) / "embedding.pt"
         if path.exists():
             return torch.load(path)
@@ -112,7 +113,7 @@ class UserStore:
         lr: float = 3e-4,
         steps: int = 20,
         device: str = "cpu",
-        init_loras: list | None = None,
+        init_loras: Optional[list] = None,
     ) -> list[tuple[torch.Tensor, torch.Tensor]]:
         """Fine-tune LoRA weights directly on a user's conversation history.
         

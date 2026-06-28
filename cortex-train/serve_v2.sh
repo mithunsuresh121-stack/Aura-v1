@@ -24,7 +24,7 @@ echo "  data-dir:   $DATA_DIR"
 USER_DIR="$BASE/cortex-core/users"
 mkdir -p "$USER_DIR"
 
-python3 "$SERVER" \
+python3.9 "$SERVER" \
     --checkpoint "$CKPT" \
     --data-dir "$DATA_DIR" \
     --improvement-dir "$CKPT_DIR/improvement" \
