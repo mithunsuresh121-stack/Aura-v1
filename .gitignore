@@ -1,0 +1,33 @@
+# Large data files
+*.npy
+*.pt
+tokenizer_old.json
+tokenizer_fixed.json
+
+# User data
+users/
+*.sqlite
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Build artifacts
+cortex-app/dist/
+cortex-app/node_modules/
+cortex-app/src-tauri/target/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+*.local

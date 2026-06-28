@@ -1,0 +1,6 @@
+{
+  "dataset": "tinystories+chat",
+  "vocab_size": 16384,
+  "seq_len": 256,
+  "total_tokens": 90148844
+}
