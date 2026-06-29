@@ -1,15 +1,14 @@
-"""
-Premiere Pro automation.
-Uses keyboard shortcuts and AppleScript for control.
-"""
 import os
 import time
 import logging
+import platform
 import subprocess
 from typing import Optional
-from .base import VideoEditor
+from .base import VideoEditor, _launch_app
 
 logger = logging.getLogger("cortex.software.premiere")
+
+SYSTEM = platform.system()
 
 
 class PremierePro(VideoEditor):
@@ -20,24 +19,42 @@ class PremierePro(VideoEditor):
             self._is_open = True
             return True
         try:
-            subprocess.run(["open", "-a", "Adobe Premiere Pro 2025"], timeout=30)
+            if SYSTEM == "Darwin":
+                for ver in ["2025", "2024"]:
+                    try:
+                        subprocess.run(["open", "-a", f"Adobe Premiere Pro {ver}"], timeout=30)
+                        break
+                    except Exception:
+                        continue
+            elif SYSTEM == "Windows":
+                for ver in ["2025", "2024"]:
+                    path = os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"),
+                                        "Adobe", f"Adobe Premiere Pro {ver}", "Adobe Premiere Pro.exe")
+                    if os.path.exists(path):
+                        subprocess.Popen([path])
+                        break
+                else:
+                    _launch_app("Adobe Premiere Pro")
+            elif SYSTEM == "Linux":
+                _launch_app("premiere")
             time.sleep(20)
             self._is_open = True
             return True
-        except Exception:
-            try:
-                subprocess.run(["open", "-a", "Adobe Premiere Pro 2024"], timeout=30)
-                time.sleep(20)
-                self._is_open = True
-                return True
-            except Exception as e:
-                logger.error(f"Failed to launch Premiere Pro: {e}")
-                return False
+        except Exception as e:
+            logger.error(f"Failed to launch Premiere Pro: {e}")
+            return False
 
     def close(self):
-        subprocess.run(["osascript", "-e",
-                        'tell application "Adobe Premiere Pro" to quit'],
-                       capture_output=True, timeout=10)
+        if SYSTEM == "Darwin":
+            subprocess.run(["osascript", "-e",
+                            'tell application "Adobe Premiere Pro" to quit'],
+                           capture_output=True, timeout=10)
+        elif SYSTEM == "Windows":
+            subprocess.run(["taskkill", "/F", "/IM", "Adobe Premiere Pro.exe"],
+                           capture_output=True, timeout=10)
+        elif SYSTEM == "Linux":
+            subprocess.run(["pkill", "-f", "Adobe Premiere Pro"],
+                           capture_output=True, timeout=10)
         self._is_open = False
 
     def new_project(self, name: str) -> bool:

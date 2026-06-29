@@ -1,15 +1,27 @@
-"""
-Screen control — screenshot capture and analysis.
-Uses macOS screencapture utility for screenshots.
-Vision analysis is pluggable (default: returns raw info, can use a vision model).
-"""
 import os
+import platform
 import subprocess
 import tempfile
 import logging
 from typing import Optional
 
 logger = logging.getLogger("cortex.computer")
+
+HAS_PYAUTOGUI = False
+try:
+    import pyautogui
+    HAS_PYAUTOGUI = True
+except ImportError:
+    pass
+
+HAS_MSS = False
+try:
+    import mss
+    HAS_MSS = True
+except ImportError:
+    pass
+
+SYSTEM = platform.system()
 
 
 class ScreenController:
@@ -19,10 +31,43 @@ class ScreenController:
 
     def capture(self, path: Optional[str] = None) -> str:
         path = path or os.path.join(tempfile.gettempdir(), "aura_screen.png")
-        subprocess.run(
-            ["screencapture", "-x", path],
-            capture_output=True, timeout=10,
-        )
+        if HAS_MSS:
+            with mss.mss() as sct:
+                mon = sct.monitors[1]
+                sct_img = sct.grab(mon)
+                from PIL import Image
+                img = Image.frombytes("RGB", sct_img.size, sct_img.bgra, "raw", "BGRX")
+                img.save(path)
+            if os.path.exists(path):
+                return path
+            raise RuntimeError("Screenshot capture failed (mss)")
+        if HAS_PYAUTOGUI:
+            img = pyautogui.screenshot()
+            img.save(path)
+            if os.path.exists(path):
+                return path
+            raise RuntimeError("Screenshot capture failed (pyautogui)")
+        if SYSTEM == "Darwin":
+            subprocess.run(
+                ["screencapture", "-x", path],
+                capture_output=True, timeout=10,
+            )
+        elif SYSTEM == "Linux":
+            subprocess.run(
+                ["import", "-window", "root", path],
+                capture_output=True, timeout=10,
+            )
+        elif SYSTEM == "Windows":
+            import ctypes
+            try:
+                import PIL.ImageGrab
+                img = PIL.ImageGrab.grab()
+                img.save(path)
+                if os.path.exists(path):
+                    return path
+            except Exception as e:
+                logger.warning(f"Windows screenshot via PIL failed: {e}")
+                raise RuntimeError("No screenshot method available for Windows")
         if not os.path.exists(path):
             raise RuntimeError("Screenshot capture failed")
         return path
@@ -37,10 +82,8 @@ class ScreenController:
         path = self.capture()
         img_b64 = self._image_to_base64(path)
         os.remove(path)
-
         if self.vision_model:
             return await self._analyze_with_vision(img_b64, detail)
-
         return self._basic_description(path if os.path.exists(path) else "")
 
     def _basic_description(self, path: str) -> str:
@@ -75,12 +118,31 @@ class ScreenController:
 
     @property
     def display_size(self) -> tuple[int, int]:
-        result = subprocess.run(
-            ["system_profiler", "SPDisplaysDataType"],
-            capture_output=True, text=True, timeout=10,
-        )
-        import re
-        match = re.search(r"Resolution: (\d+) x (\d+)", result.stdout)
-        if match:
-            return (int(match.group(1)), int(match.group(2)))
+        if HAS_PYAUTOGUI:
+            w, h = pyautogui.size()
+            return (int(w), int(h))
+        if SYSTEM == "Darwin":
+            result = subprocess.run(
+                ["system_profiler", "SPDisplaysDataType"],
+                capture_output=True, text=True, timeout=10,
+            )
+            import re
+            match = re.search(r"Resolution: (\d+) x (\d+)", result.stdout)
+            if match:
+                return (int(match.group(1)), int(match.group(2)))
+        elif SYSTEM == "Linux":
+            result = subprocess.run(
+                ["xrandr", "--current"], capture_output=True, text=True, timeout=10,
+            )
+            import re
+            match = re.search(r"connected primary (\d+)x(\d+)", result.stdout)
+            if match:
+                return (int(match.group(1)), int(match.group(2)))
+        elif SYSTEM == "Windows":
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                return (user32.GetSystemMetrics(0), user32.GetSystemMetrics(1))
+            except Exception:
+                pass
         return (1920, 1080)

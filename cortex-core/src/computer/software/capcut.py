@@ -1,13 +1,13 @@
-"""
-CapCut desktop automation.
-Uses keyboard shortcuts. CapCut has no scripting API.
-"""
+import os
 import time
 import logging
+import platform
 import subprocess
-from .base import VideoEditor
+from .base import VideoEditor, _launch_app
 
 logger = logging.getLogger("cortex.software.capcut")
+
+SYSTEM = platform.system()
 
 
 class CapCut(VideoEditor):
@@ -18,7 +18,23 @@ class CapCut(VideoEditor):
             self._is_open = True
             return True
         try:
-            subprocess.run(["open", "-a", "CapCut"], timeout=30)
+            if SYSTEM == "Darwin":
+                _launch_app("CapCut")
+            elif SYSTEM == "Windows":
+                paths = [
+                    os.path.join(os.environ.get("LOCALAPPDATA", "C:\\Users\\Default\\AppData\\Local"),
+                                 "CapCut", "CapCut.exe"),
+                    os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"),
+                                 "CapCut", "CapCut.exe"),
+                ]
+                for p in paths:
+                    if os.path.exists(p):
+                        subprocess.Popen([p])
+                        break
+                else:
+                    _launch_app("CapCut")
+            elif SYSTEM == "Linux":
+                _launch_app("capcut")
             time.sleep(15)
             self._is_open = True
             return True
@@ -27,9 +43,16 @@ class CapCut(VideoEditor):
             return False
 
     def close(self):
-        subprocess.run(["osascript", "-e",
-                        'tell application "CapCut" to quit'],
-                       capture_output=True, timeout=10)
+        if SYSTEM == "Darwin":
+            subprocess.run(["osascript", "-e",
+                            'tell application "CapCut" to quit'],
+                           capture_output=True, timeout=10)
+        elif SYSTEM == "Windows":
+            subprocess.run(["taskkill", "/F", "/IM", "CapCut.exe"],
+                           capture_output=True, timeout=10)
+        elif SYSTEM == "Linux":
+            subprocess.run(["pkill", "-f", "CapCut"],
+                           capture_output=True, timeout=10)
         self._is_open = False
 
     def new_project(self, name: str) -> bool:

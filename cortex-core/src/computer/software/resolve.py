@@ -1,19 +1,22 @@
-"""
-DaVinci Resolve automation.
-Uses the official DaVinci Resolve Scripting API when available,
-falls back to keyboard shortcut + GUI automation.
-"""
 import os
 import sys
 import time
 import logging
+import platform
 import subprocess
 from typing import Optional
-from .base import VideoEditor
+from .base import VideoEditor, _launch_app
 
 logger = logging.getLogger("cortex.software.resolve")
 
-RESOLVE_SCRIPT_PATH = "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules"
+SYSTEM = platform.system()
+
+_RESOLVE_PATHS = {
+    "Darwin": "/Library/Application Support/Blackmagic Design/DaVinci Resolve/Developer/Scripting/Modules",
+    "Windows": os.path.join(os.environ.get("PROGRAMDATA", "C:\\ProgramData"),
+                            "Blackmagic Design", "DaVinci Resolve", "Support", "Developer", "Scripting", "Modules"),
+    "Linux": "/opt/resolve/Developer/Scripting/Modules",
+}
 
 
 class DaVinciResolve(VideoEditor):
@@ -24,14 +27,15 @@ class DaVinciResolve(VideoEditor):
         self._resolve = None
         self._project = None
         self._fusion = None
-        self._has_script_api = os.path.isdir(RESOLVE_SCRIPT_PATH)
+        self._resolve_script_path = _RESOLVE_PATHS.get(SYSTEM, _RESOLVE_PATHS["Linux"])
+        self._has_script_api = os.path.isdir(self._resolve_script_path)
 
     def _try_init_api(self):
         if not self._has_script_api:
             return False
         try:
-            if RESOLVE_SCRIPT_PATH not in sys.path:
-                sys.path.insert(0, RESOLVE_SCRIPT_PATH)
+            if self._resolve_script_path not in sys.path:
+                sys.path.insert(0, self._resolve_script_path)
             import DaVinciResolveScript as dvr
             self._resolve = dvr.scriptapp("Resolve")
             if self._resolve:
@@ -48,7 +52,17 @@ class DaVinciResolve(VideoEditor):
             self._try_init_api()
             return True
         try:
-            subprocess.run(["open", "-a", "DaVinci Resolve"], timeout=30)
+            if SYSTEM == "Darwin":
+                _launch_app(self.name)
+            elif SYSTEM == "Windows":
+                resolve_path = os.path.join(os.environ.get("PROGRAMFILES", "C:\\Program Files"),
+                                            "Blackmagic Design", "DaVinci Resolve", "Resolve.exe")
+                if os.path.exists(resolve_path):
+                    subprocess.Popen([resolve_path], shell=True)
+                else:
+                    _launch_app("Resolve")
+            elif SYSTEM == "Linux":
+                subprocess.Popen(["/opt/resolve/bin/resolve"])
             time.sleep(15)
             self._is_open = True
             self._try_init_api()
@@ -58,15 +72,18 @@ class DaVinciResolve(VideoEditor):
             return False
 
     def close(self):
-        if self._resolve:
-            try:
-                self._resolve = None
-                self._project = None
-            except Exception:
-                pass
-        subprocess.run(["osascript", "-e",
-                        'tell application "DaVinci Resolve" to quit'],
-                       capture_output=True, timeout=10)
+        self._resolve = None
+        self._project = None
+        if SYSTEM == "Darwin":
+            subprocess.run(["osascript", "-e",
+                            'tell application "DaVinci Resolve" to quit'],
+                           capture_output=True, timeout=10)
+        elif SYSTEM == "Windows":
+            subprocess.run(["taskkill", "/F", "/IM", "Resolve.exe"],
+                           capture_output=True, timeout=10)
+        elif SYSTEM == "Linux":
+            subprocess.run(["pkill", "-f", "resolve"],
+                           capture_output=True, timeout=10)
         self._is_open = False
 
     def new_project(self, name: str) -> bool:
@@ -80,11 +97,11 @@ class DaVinciResolve(VideoEditor):
             except Exception as e:
                 logger.warning(f"API new_project failed: {e}")
 
-        self.hotkey("cmd", "n")
+        self._keystroke("cmd", "n")
         time.sleep(0.5)
-        self.type_text(name)
+        self._type(name)
         time.sleep(0.3)
-        self.press_key("enter")
+        self._press("return")
         time.sleep(1)
         return True
 
@@ -99,11 +116,11 @@ class DaVinciResolve(VideoEditor):
             except Exception as e:
                 logger.warning(f"API open_project failed: {e}")
 
-        self.hotkey("cmd", "o")
+        self._keystroke("cmd", "o")
         time.sleep(0.5)
-        self.type_text(path)
+        self._type(path)
         time.sleep(0.3)
-        self.press_key("enter")
+        self._press("return")
         time.sleep(2)
         return True
 
@@ -116,14 +133,14 @@ class DaVinciResolve(VideoEditor):
             except Exception as e:
                 logger.warning(f"API save failed: {e}")
 
-        self.hotkey("cmd", "s")
+        self._keystroke("cmd", "s")
         time.sleep(0.5)
         if path:
-            self.hotkey("cmd", "shift", "s")
+            self._keystroke("cmd", "shift", "s")
             time.sleep(0.5)
-            self.type_text(path)
+            self._type(path)
             time.sleep(0.3)
-            self.press_key("enter")
+            self._press("return")
         time.sleep(1)
         return True
 
@@ -141,11 +158,11 @@ class DaVinciResolve(VideoEditor):
                 logger.warning(f"API import_media failed: {e}")
 
         for fp in file_paths:
-            self.hotkey("cmd", "i")
+            self._keystroke("cmd", "i")
             time.sleep(0.5)
-            self.type_text(fp)
+            self._type(fp)
             time.sleep(0.3)
-            self.press_key("enter")
+            self._press("return")
             time.sleep(1)
         return True
 
@@ -165,11 +182,11 @@ class DaVinciResolve(VideoEditor):
             except Exception as e:
                 logger.warning(f"API add_to_timeline failed: {e}")
 
-        self.hotkey("cmd", "shift", "a")
+        self._keystroke("cmd", "shift", "a")
         time.sleep(0.3)
-        self.hotkey("cmd", "down")
+        self._keystroke("cmd", "down")
         time.sleep(0.3)
-        self.press_key("enter")
+        self._press("return")
         time.sleep(1)
         return True
 
@@ -184,13 +201,14 @@ class DaVinciResolve(VideoEditor):
             except Exception as e:
                 logger.warning(f"API set_export_preset failed: {e}")
 
-        self.hotkey("cmd", "m")
+        self._keystroke("cmd", "m")
         time.sleep(1)
-        self.click(400, 300)
+        from ..mouse import MouseController
+        MouseController().click(400, 300)
         time.sleep(0.5)
-        self.type_text(preset)
+        self._type(preset)
         time.sleep(0.3)
-        self.press_key("enter")
+        self._press("return")
         time.sleep(1)
         return True
 
@@ -209,15 +227,16 @@ class DaVinciResolve(VideoEditor):
             except Exception as e:
                 logger.warning(f"API export failed: {e}")
 
-        self.hotkey("cmd", "m")
+        self._keystroke("cmd", "m")
         time.sleep(1)
-        self.click(800, 400)
+        from ..mouse import MouseController
+        MouseController().click(800, 400)
         time.sleep(0.5)
-        self.type_text(output_path)
+        self._type(output_path)
         time.sleep(0.3)
-        self.press_key("enter")
+        self._press("return")
         time.sleep(0.5)
-        self.press_key("enter")
+        self._press("return")
         time.sleep(2)
         return True
 
@@ -238,18 +257,18 @@ class DaVinciResolve(VideoEditor):
         logger.info("Waiting for export (GUI mode — check manually)")
         return True
 
-    def hotkey(self, *keys: str):
+    def _keystroke(self, *keys: str):
         from ..keyboard import KeyboardController
         KeyboardController().hotkey(*keys)
 
-    def click(self, x: int, y: int):
+    def _click(self, x: int, y: int):
         from ..mouse import MouseController
         MouseController().click(x, y)
 
-    def type_text(self, text: str):
+    def _type(self, text: str):
         from ..keyboard import KeyboardController
         KeyboardController().type(text)
 
-    def press_key(self, key: str):
+    def _press(self, key: str):
         from ..keyboard import KeyboardController
         KeyboardController().press(key)

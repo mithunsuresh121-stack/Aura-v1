@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CORTEX — Your local AI agent</title>
+    <link rel="icon" href="data:," />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+        background: #080812;
+        color: #e8e8f0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+      }
+      ::selection { background: rgba(124, 92, 252, 0.25); }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #1e1e36; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #2a2a46; }
+      a { color: #7c5cfc; text-decoration: none; }
+      a:hover { color: #9b7eff; }
+
+      .header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.75rem 2rem;
+        background: rgba(8, 8, 18, 0.7);
+        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(30, 30, 54, 0.4);
+      }
+      .header-logo {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 1rem; font-weight: 700; color: #e8e8f0;
+      }
+      .header-logo .icon {
+        width: 24px; height: 24px; border-radius: 8px;
+        background: linear-gradient(135deg, #7c5cfc, #5a3cfc);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.75rem; color: #fff; font-weight: 700;
+        box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
+      }
+      .header-nav { display: flex; align-items: center; gap: 1.5rem; }
+      .header-nav a { font-size: 0.82rem; color: #686880; transition: color 0.15s; }
+      .header-nav a:hover { color: #e8e8f0; }
+      .btn-primary {
+        background: linear-gradient(135deg, #7c5cfc, #6a4ae0);
+        border: none; color: #fff; padding: 0.5rem 1.2rem;
+        border-radius: 10px; cursor: pointer; font-weight: 600;
+        font-size: 0.82rem; font-family: inherit;
+        transition: all 0.15s;
+        box-shadow: 0 2px 8px rgba(124, 92, 252, 0.2);
+      }
+      .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(124, 92, 252, 0.35); }
+      .btn-secondary {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(30, 30, 54, 0.5);
+        color: #e8e8f0; padding: 0.5rem 1.2rem;
+        border-radius: 10px; cursor: pointer; font-weight: 500;
+        font-size: 0.82rem; font-family: inherit;
+        transition: all 0.15s;
+      }
+      .btn-secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(124, 92, 252, 0.3); }
+
+      .hero {
+        display: flex; flex-direction: column; align-items: center;
+        text-align: center; padding: 8rem 2rem 5rem;
+        background: radial-gradient(ellipse at 50% 20%, rgba(124, 92, 252, 0.06) 0%, transparent 60%);
+      }
+      .hero-badge {
+        display: inline-flex; align-items: center; gap: 0.35rem;
+        background: rgba(124, 92, 252, 0.1); border: 1px solid rgba(124, 92, 252, 0.2);
+        border-radius: 20px; padding: 0.3rem 0.8rem 0.3rem 0.6rem;
+        font-size: 0.75rem; color: #c084fc; margin-bottom: 1.5rem;
+      }
+      .hero-badge .dot {
+        width: 6px; height: 6px; border-radius: 50%;
+        background: #4ade80; box-shadow: 0 0 6px rgba(74, 222, 128, 0.5);
+      }
+      .hero h1 {
+        font-size: 3.5rem; font-weight: 800; line-height: 1.1;
+        letter-spacing: -0.03em; max-width: 680px;
+        background: linear-gradient(135deg, #f0f0f8, #a0a0c0);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero h1 .highlight {
+        background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .hero p {
+        font-size: 1.1rem; color: #686880; max-width: 520px;
+        margin-top: 1rem; line-height: 1.6;
+      }
+      .hero-actions { display: flex; gap: 0.75rem; margin-top: 2rem; }
+
+      .install-section { padding: 0 2rem 4rem; }
+      .install-box {
+        max-width: 600px; margin: 0 auto;
+        background: rgba(18, 18, 34, 0.6);
+        border: 1px solid rgba(30, 30, 54, 0.5);
+        border-radius: 14px; overflow: hidden;
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      }
+      .install-tabs {
+        display: flex; gap: 0; border-bottom: 1px solid rgba(30, 30, 54, 0.4);
+        padding: 0.3rem 0.3rem 0;
+      }
+      .install-tab {
+        background: none; border: none; color: #484860; padding: 0.4rem 0.85rem;
+        cursor: pointer; font-size: 0.75rem; border-radius: 8px 8px 0 0;
+        font-family: inherit; transition: all 0.15s;
+      }
+      .install-tab.active { color: #e8e8f0; background: rgba(124, 92, 252, 0.08); }
+      .install-tab:hover:not(.active) { color: #8888a0; }
+      .install-body {
+        display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem;
+      }
+      .install-body code {
+        flex: 1; background: rgba(0,0,0,0.3); padding: 0.5rem 0.75rem;
+        border-radius: 8px; font-size: 0.78rem; color: #a0a0c0;
+        font-family: 'SF Mono', 'Fira Code', monospace;
+        border: 1px solid rgba(30, 30, 54, 0.3);
+      }
+      .btn-copy {
+        background: rgba(255,255,255,0.04); border: 1px solid rgba(30, 30, 54, 0.4);
+        color: #686880; padding: 0.5rem 0.75rem; border-radius: 8px;
+        cursor: pointer; font-size: 0.72rem; font-family: inherit;
+        transition: all 0.15s;
+      }
+      .btn-copy:hover { background: rgba(255,255,255,0.08); color: #e8e8f0; }
+
+      .section {
+        padding: 4rem 2rem;
+        border-top: 1px solid rgba(30, 30, 54, 0.3);
+      }
+      .section-inner { max-width: 1000px; margin: 0 auto; }
+      .section-label {
+        font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #7c5cfc; font-weight: 700; margin-bottom: 0.75rem;
+      }
+      .section h2 {
+        font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em;
+        margin-bottom: 0.75rem;
+      }
+      .section h2 .highlight {
+        background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .section > .section-inner > p {
+        font-size: 0.95rem; color: #686880; line-height: 1.7; max-width: 560px;
+      }
+
+      .features-grid {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 1rem; margin-top: 2rem;
+      }
+      .feature-card {
+        background: rgba(18, 18, 34, 0.4);
+        border: 1px solid rgba(30, 30, 54, 0.4);
+        border-radius: 14px; padding: 1.25rem;
+        transition: all 0.2s;
+        border-top: 2px solid rgba(30, 30, 54, 0.4);
+      }
+      .feature-card:hover {
+        background: rgba(18, 18, 34, 0.7);
+        border-color: rgba(124, 92, 252, 0.2);
+        border-top-color: #7c5cfc;
+        transform: translateY(-2px);
+      }
+      .feature-card .card-label {
+        font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #7c5cfc; font-weight: 700; margin-bottom: 0.35rem;
+      }
+      .feature-card h3 {
+        font-size: 0.9rem; font-weight: 600; margin-bottom: 0.35rem;
+      }
+      .feature-card p {
+        font-size: 0.78rem; color: #686880; line-height: 1.5;
+      }
+
+      .stats-row {
+        display: flex; gap: 2rem; margin-top: 2rem;
+        justify-content: center; flex-wrap: wrap;
+      }
+      .stat {
+        text-align: center; padding: 1.5rem 2rem;
+        background: rgba(18, 18, 34, 0.4);
+        border: 1px solid rgba(30, 30, 54, 0.4);
+        border-radius: 14px; min-width: 160px;
+      }
+      .stat-num {
+        font-size: 2rem; font-weight: 800;
+        background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .stat-label {
+        font-size: 0.78rem; color: #686880; margin-top: 0.25rem;
+      }
+
+      .privacy-content {
+        display: flex; gap: 3rem; align-items: center; margin-top: 2rem;
+      }
+      .privacy-content p {
+        font-size: 0.9rem; color: #686880; line-height: 1.7; max-width: 500px;
+      }
+      .privacy-grid {
+        display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem;
+      }
+      .privacy-item {
+        background: rgba(18, 18, 34, 0.4);
+        border: 1px solid rgba(30, 30, 54, 0.3);
+        border-radius: 10px; padding: 0.75rem 1rem;
+        font-size: 0.78rem; color: #8888a0;
+      }
+      .privacy-item strong { color: #e8e8f0; }
+
+      .faq-list { margin-top: 2rem; display: flex; flex-direction: column; gap: 0.5rem; }
+      .faq-item {
+        background: rgba(18, 18, 34, 0.4);
+        border: 1px solid rgba(30, 30, 54, 0.4);
+        border-radius: 12px; overflow: hidden;
+      }
+      .faq-question {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1rem 1.25rem; cursor: pointer; font-size: 0.9rem; font-weight: 500;
+        user-select: none; transition: background 0.15s;
+      }
+      .faq-question:hover { background: rgba(255,255,255,0.02); }
+      .faq-arrow { font-size: 0.65rem; color: #484860; transition: transform 0.2s; }
+      .faq-item.open .faq-arrow { transform: rotate(180deg); }
+      .faq-answer {
+        padding: 0 1.25rem 1rem; font-size: 0.82rem; color: #686880;
+        line-height: 1.6; display: none;
+      }
+      .faq-item.open .faq-answer { display: block; }
+
+      .cta {
+        text-align: center; padding: 5rem 2rem;
+        border-top: 1px solid rgba(30, 30, 54, 0.3);
+        background: radial-gradient(ellipse at 50% 50%, rgba(124, 92, 252, 0.05) 0%, transparent 60%);
+      }
+      .cta h2 { font-size: 2rem; font-weight: 700; }
+      .cta p { color: #686880; margin: 0.75rem 0 1.5rem; font-size: 1rem; }
+
+      .footer {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.5rem 2rem; border-top: 1px solid rgba(30, 30, 54, 0.3);
+        font-size: 0.75rem; color: #484860;
+      }
+      .footer-links { display: flex; gap: 1.5rem; }
+      .footer-links a { color: #484860; transition: color 0.15s; }
+      .footer-links a:hover { color: #686880; }
+
+      @media (max-width: 768px) {
+        .hero h1 { font-size: 2.2rem; }
+        .features-grid { grid-template-columns: 1fr; }
+        .privacy-content { flex-direction: column; }
+        .privacy-grid { grid-template-columns: 1fr; }
+        .stats-row { flex-direction: column; align-items: center; }
+        .header-nav a:not(.btn-primary) { display: none; }
+        .hero { padding: 6rem 1.5rem 3rem; }
+        .section { padding: 3rem 1.5rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-logo">
+        <div class="icon">C</div>
+        <span>CORTEX</span>
+      </div>
+      <nav class="header-nav">
+        <a href="/docs/index.html">Docs</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1">GitHub</a>
+        <a href="/">App</a>
+        <a href="/" class="btn-primary">Launch App</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        <span>v0.1.0 — Local first, always</span>
+      </div>
+      <h1>Your <span class="highlight">local AI agent</span></h1>
+      <p>CORTEX runs entirely on your machine. Available on <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>. Chat, automate, control apps, and edit video — all through a single interface.</p>
+      <div class="hero-actions">
+        <a href="/" class="btn-primary">Launch App</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1" class="btn-secondary">GitHub →</a>
+      </div>
+    </section>
+
+    <section class="install-section">
+      <div class="install-box">
+        <div class="install-tabs">
+          <button class="install-tab active">curl</button>
+          <button class="install-tab">npm</button>
+          <button class="install-tab">git</button>
+        </div>
+        <div class="install-body">
+          <code id="install-code">git clone https://github.com/mithunsuresh121-stack/Aura-v1.git && cd Aura-v1/autonomous && bash start.sh</code>
+          <button class="btn-copy" onclick="copyInstall()">Copy</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-label">Capabilities</div>
+        <h2>Everything you<br />need in <span class="highlight">one agent</span></h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="card-label">Chat</div>
+            <h3>Multi-Model Chat</h3>
+            <p>Switch between local models, OpenAI, Gemini, and Ollama on the fly. Each with its own strengths.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-label">Automation</div>
+            <h3>Computer Control</h3>
+            <p>CORTEX can see your screen, click, type, and run scripts — just like a real assistant.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-label">Integration</div>
+            <h3>MCP Connectors</h3>
+            <p>Connect to any MCP-compatible server. A GitHub connector config is included out of the box.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-label">Media</div>
+            <h3>Video Editing</h3>
+            <p>Automate DaVinci Resolve, Premiere Pro, and CapCut through natural language commands.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-label">Planning</div>
+            <h3>Orchestration</h3>
+            <p>Decompose complex tasks into sub-agents. CORTEX plans, delegates, and reviews the results.</p>
+          </div>
+          <div class="feature-card">
+            <div class="card-label">Security</div>
+            <h3>Built for Privacy</h3>
+            <p>Every model runs locally by default. No data is sent to external servers unless you choose to.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-label">Community</div>
+        <h2>Built in the open</h2>
+        <p>Open source from day one. Contributions, forks, and ideas welcome.</p>
+        <div class="stats-row">
+          <div class="stat">
+            <div class="stat-num">100%</div>
+            <div class="stat-label">Local by Default</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">9</div>
+            <div class="stat-label">Permission Gates</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">6</div>
+            <div class="stat-label">Core Capabilities</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-label">Privacy First</div>
+        <h2>Your data never<br />leaves <span class="highlight">your machine</span></h2>
+        <div class="privacy-content">
+          <p>CORTEX is designed for privacy-sensitive environments. Every capability is gated behind explicit permissions that you control. No telemetry, no tracking, no cloud dependency.</p>
+          <div class="privacy-grid">
+            <div class="privacy-item"><strong>No telemetry</strong><br />Zero data collection. No analytics.</div>
+            <div class="privacy-item"><strong>Granular permissions</strong><br />9 permissions across 4 categories.</div>
+            <div class="privacy-item"><strong>Local models</strong><br />GPT-2 included. No API key needed.</div>
+            <div class="privacy-item"><strong>Open source</strong><br />Audit every line of code.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-inner">
+        <div class="section-label">FAQ</div>
+        <h2>Common questions</h2>
+        <div class="faq-list">
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>What is CORTEX?</span>
+              <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-answer">CORTEX is a local-first AI agent that runs entirely on your machine. It provides multi-model chat, computer control, app automation, video editing, and more — all through a single interface. No data leaves your machine unless you explicitly choose to connect to a cloud model.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>How do I get started?</span>
+              <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-answer">Clone the repository, run the start script, and open the app. The built-in GPT-2 model works immediately with no API keys required. For more capable models, you can connect to Ollama, OpenAI, or Gemini.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>Do I need extra AI subscriptions?</span>
+              <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-answer">No. CORTEX runs fully locally with the included GPT-2 model. If you want better performance, you can bring your own API keys for OpenAI or Gemini, or run local models through Ollama — but none are required.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>What about data and privacy?</span>
+              <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-answer">CORTEX is built for privacy first. All processing happens locally. There is no telemetry, no analytics, and no data collection. Every capability that touches your system (screen recording, file access, automation) requires explicit permission that you can grant or revoke at any time.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>Is CORTEX open source?</span>
+              <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-answer">Yes. CORTEX is fully open source. You can inspect, modify, and distribute the code. Contributions are welcome.</div>
+          </div>
+          <div class="faq-item">
+            <div class="faq-question" onclick="toggleFaq(this)">
+              <span>Which platforms are supported?</span>
+              <span class="faq-arrow">▼</span>
+            </div>
+            <div class="faq-answer">CORTEX supports <strong>macOS</strong>, <strong>Windows</strong>, and <strong>Linux</strong>. The app runs on any platform with Python 3.9+ and a modern web browser. Computer control features use platform-native accessibility APIs (Accessibility API on macOS, UI Automation on Windows, X11/Wayland on Linux).</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <h2>Ready to get started?</h2>
+      <p>Launch the app and start chatting with CORTEX in seconds.</p>
+      <a href="/" class="btn-primary">Launch App →</a>
+    </section>
+
+    <footer class="footer">
+      <span>&copy;2026 CORTEX</span>
+      <div class="footer-links">
+        <a href="/docs/index.html">Docs</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1">GitHub</a>
+        <a href="/">App</a>
+      </div>
+    </footer>
+
+    <script>
+      function toggleFaq(el) {
+        el.parentElement.classList.toggle('open');
+      }
+      function copyInstall() {
+        const code = document.getElementById('install-code');
+        navigator.clipboard.writeText(code.textContent);
+        const btn = document.querySelector('.btn-copy');
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = 'Copy', 2000);
+      }
+      document.querySelectorAll('.install-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          document.querySelectorAll('.install-tab').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          const code = document.getElementById('install-code');
+          const cmds = {
+            'curl': 'git clone https://github.com/mithunsuresh121-stack/Aura-v1.git && cd Aura-v1/autonomous && bash start.sh',
+            'npm': 'npx degit mithunsuresh121-stack/Aura-v1/autonomous aura && cd aura && npm install && npm run dev',
+            'git': 'git clone https://github.com/mithunsuresh121-stack/Aura-v1.git && cd Aura-v1/autonomous && bash start.sh'
+          };
+          code.textContent = cmds[this.textContent] || cmds['curl'];
+        });
+      });
+    </script>
+  </body>
+</html>

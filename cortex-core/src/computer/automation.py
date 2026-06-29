@@ -1,15 +1,20 @@
-"""
-ComputerAgent — high-level computer control agent.
-Combines screen, mouse, and keyboard into a tool-based interface
-that the LLM can use to control the user's computer.
-"""
 import logging
+import platform
+import subprocess
 from typing import Optional
 from .screen import ScreenController
 from .mouse import MouseController
 from .keyboard import KeyboardController
 
 logger = logging.getLogger("cortex.computer")
+
+SYSTEM = platform.system()
+HAS_PYGETWINDOW = False
+try:
+    import pygetwindow as gw
+    HAS_PYGETWINDOW = True
+except ImportError:
+    pass
 
 
 class ComputerAgent:
@@ -52,12 +57,17 @@ class ComputerAgent:
         return self.mouse.position
 
     def open_app(self, app_name: str):
-        import subprocess
-        subprocess.run(["open", "-a", app_name], capture_output=True, timeout=10)
+        if SYSTEM == "Darwin":
+            subprocess.run(["open", "-a", app_name], capture_output=True, timeout=10)
+        elif SYSTEM == "Linux":
+            subprocess.run([app_name], capture_output=True, timeout=10)
+        elif SYSTEM == "Windows":
+            subprocess.run(["start", app_name], shell=True, capture_output=True, timeout=10)
+        else:
+            subprocess.run([app_name], capture_output=True, timeout=10)
         logger.info(f"Opened app: {app_name}")
 
     def run_script(self, script: str, interpreter: str = "bash") -> str:
-        import subprocess
         try:
             result = subprocess.run(
                 [interpreter, "-c", script],
@@ -69,28 +79,58 @@ class ComputerAgent:
             return f"Script error: {e}"
 
     def get_active_window(self) -> str:
-        import subprocess
-        try:
-            result = subprocess.run(
-                ["osascript", "-e",
-                 'tell application "System Events" to get name of first process whose frontmost is true'],
-                capture_output=True, text=True, timeout=3,
-            )
-            name = result.stdout.strip()
-            if name:
-                return name
-        except Exception:
-            pass
-        try:
-            result = subprocess.run(
-                ["python3.9", "-c", "import Quartz; ws = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, 0); print(ws[0].get('kCGWindowOwnerName', 'unknown'))"],
-                capture_output=True, text=True, timeout=3,
-            )
-            name = result.stdout.strip()
-            if name:
-                return name
-        except Exception:
-            pass
+        if HAS_PYGETWINDOW:
+            try:
+                active = gw.getActiveWindow()
+                if active:
+                    return active.title
+            except Exception:
+                pass
+        if SYSTEM == "Darwin":
+            try:
+                result = subprocess.run(
+                    ["osascript", "-e",
+                     'tell application "System Events" to get name of first process whose frontmost is true'],
+                    capture_output=True, text=True, timeout=3,
+                )
+                name = result.stdout.strip()
+                if name:
+                    return name
+            except Exception:
+                pass
+            try:
+                result = subprocess.run(
+                    ["python3.9", "-c",
+                     "import Quartz; ws = Quartz.CGWindowListCopyWindowInfo(Quartz.kCGWindowListOptionOnScreenOnly, 0); print(ws[0].get('kCGWindowOwnerName', 'unknown'))"],
+                    capture_output=True, text=True, timeout=3,
+                )
+                name = result.stdout.strip()
+                if name:
+                    return name
+            except Exception:
+                pass
+        elif SYSTEM == "Linux":
+            try:
+                result = subprocess.run(
+                    ["xdotool", "getactivewindow", "getwindowname"],
+                    capture_output=True, text=True, timeout=3,
+                )
+                name = result.stdout.strip()
+                if name:
+                    return name
+            except Exception:
+                pass
+        elif SYSTEM == "Windows":
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                handle = user32.GetForegroundWindow()
+                length = user32.GetWindowTextLengthW(handle)
+                buf = ctypes.create_unicode_buffer(length + 1)
+                user32.GetWindowTextW(handle, buf, length + 1)
+                return buf.value or "unknown"
+            except Exception as e:
+                logger.warning(f"Windows get_active_window failed: {e}")
         return "unknown"
 
     async def execute_plan(self, steps: list[dict]) -> list[str]:

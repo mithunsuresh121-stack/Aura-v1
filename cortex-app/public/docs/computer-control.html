@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Computer Control — CORTEX Docs</title>
+    <link rel="icon" href="data:," />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+        background: #080812;
+        color: #e8e8f0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+      }
+      ::selection { background: rgba(124, 92, 252, 0.25); }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #1e1e36; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #2a2a46; }
+      a { color: #7c5cfc; text-decoration: none; }
+      a:hover { color: #9b7eff; }
+
+      .header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.65rem 2rem;
+        background: rgba(8, 8, 18, 0.7);
+        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(30, 30, 54, 0.4);
+      }
+      .header-logo {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.95rem; font-weight: 700; color: #e8e8f0;
+      }
+      .header-logo .icon {
+        width: 22px; height: 22px; border-radius: 8px;
+        background: linear-gradient(135deg, #7c5cfc, #5a3cfc);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; color: #fff; font-weight: 700;
+        box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
+      }
+      .header-nav { display: flex; align-items: center; gap: 1.25rem; }
+      .header-nav a { font-size: 0.8rem; color: #686880; transition: color 0.15s; }
+      .header-nav a:hover { color: #e8e8f0; }
+      .header-nav a.active { color: #c084fc; }
+
+      .layout { display: flex; padding-top: 52px; min-height: 100vh; }
+
+      .sidebar {
+        width: 220px; flex-shrink: 0;
+        border-right: 1px solid rgba(30, 30, 54, 0.3);
+        padding: 1.5rem 0; overflow-y: auto; position: sticky; top: 52px;
+        height: calc(100vh - 52px); background: rgba(8, 8, 18, 0.5);
+      }
+      .sidebar-section { margin-bottom: 1.25rem; }
+      .sidebar-section-title {
+        font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #484860; font-weight: 700; padding: 0 1rem 0.4rem;
+      }
+      .sidebar-link {
+        display: block; padding: 0.3rem 1rem; font-size: 0.78rem; color: #686880;
+        border-left: 2px solid transparent; transition: all 0.12s;
+        position: relative;
+      }
+      .sidebar-link:hover { background: rgba(255,255,255,0.02); color: #8888a0; }
+      .sidebar-link.active {
+        color: #c084fc; border-left-color: #7c5cfc;
+        background: linear-gradient(90deg, rgba(124, 92, 252, 0.06), transparent);
+      }
+
+      .main { flex: 1; max-width: 780px; padding: 2.5rem 2.5rem 4rem; }
+      .main h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+      .main h1 .highlight {
+        background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .main .subtitle { font-size: 0.92rem; color: #686880; line-height: 1.6; margin-bottom: 2rem; }
+      .main h2 {
+        font-size: 1.2rem; font-weight: 600; margin: 2rem 0 0.6rem;
+        padding-bottom: 0.35rem; border-bottom: 1px solid rgba(30, 30, 54, 0.25);
+        color: #d0d0e0;
+      }
+      .main h3 { font-size: 0.95rem; font-weight: 600; margin: 1.25rem 0 0.4rem; color: #b0b0c8; }
+      .main p { font-size: 0.85rem; color: #808098; line-height: 1.7; margin-bottom: 0.85rem; }
+      .main ul, .main ol { padding-left: 1.25rem; margin-bottom: 0.85rem; }
+      .main li { font-size: 0.85rem; color: #808098; line-height: 1.65; margin-bottom: 0.2rem; }
+      .main li strong { color: #b0b0c8; }
+      .main code {
+        background: rgba(255,255,255,0.04); padding: 0.1rem 0.35rem;
+        border-radius: 4px; font-size: 0.8rem; font-family: 'SF Mono', 'Fira Code', monospace;
+      }
+      .main pre {
+        background: rgba(0,0,0,0.3); border: 1px solid rgba(30, 30, 54, 0.35);
+        border-radius: 10px; padding: 0.8rem 1rem; overflow-x: auto;
+        margin: 0.65rem 0; font-size: 0.76rem; color: #9090a8;
+        font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1.5;
+      }
+      .main pre .cmd { color: #4ade80; }
+      .main pre .comment { color: #484860; }
+      .main .tip {
+        background: rgba(124, 92, 252, 0.05); border: 1px solid rgba(124, 92, 252, 0.12);
+        border-radius: 10px; padding: 0.75rem 1rem; margin: 1rem 0;
+        font-size: 0.8rem; color: #9090a8; line-height: 1.5;
+        border-left: 3px solid #7c5cfc;
+      }
+      .main .tip strong { color: #c084fc; }
+      .main .note {
+        background: rgba(74, 222, 128, 0.04); border: 1px solid rgba(74, 222, 128, 0.1);
+        border-radius: 10px; padding: 0.75rem 1rem; margin: 1rem 0;
+        font-size: 0.8rem; color: #9090a8; line-height: 1.5;
+        border-left: 3px solid #4ade80;
+      }
+      .main .note strong { color: #4ade80; }
+
+      .docs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin: 1.25rem 0; }
+      .docs-card {
+        background: rgba(18, 18, 34, 0.4); border: 1px solid rgba(30, 30, 54, 0.4);
+        border-radius: 12px; padding: 1.1rem; transition: all 0.2s;
+        display: block; color: #e8e8f0; border-top: 2px solid rgba(30, 30, 54, 0.4);
+      }
+      .docs-card:hover {
+        background: rgba(18, 18, 34, 0.7);
+        border-color: rgba(124, 92, 252, 0.2);
+        border-top-color: #7c5cfc; transform: translateY(-2px);
+      }
+      .docs-card .card-label {
+        font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #7c5cfc; font-weight: 700; margin-bottom: 0.25rem;
+      }
+      .docs-card h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem; color: #e0e0f0; }
+      .docs-card p { font-size: 0.72rem; color: #686880; line-height: 1.4; }
+
+      .footer {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.25rem 2rem; border-top: 1px solid rgba(30, 30, 54, 0.3);
+        font-size: 0.72rem; color: #484860; margin-left: 220px;
+      }
+      .footer-links { display: flex; gap: 1.25rem; }
+      .footer-links a { color: #484860; transition: color 0.15s; }
+      .footer-links a:hover { color: #686880; }
+
+      @media (max-width: 768px) {
+        .sidebar { display: none; }
+        .footer { margin-left: 0; }
+        .main { padding: 1.5rem; }
+        .docs-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-logo">
+        <div class="icon">C</div>
+        <span>CORTEX</span>
+      </div>
+      <nav class="header-nav">
+        <a href="/landing.html">Home</a>
+        <a href="/">App</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Getting Started</div>
+          <a href="/docs/index.html" class="sidebar-link">Overview</a>
+          <a href="/docs/chat.html" class="sidebar-link">Multi-Model Chat</a>
+          <a href="/docs/build.html" class="sidebar-link">Build Mode</a>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Capabilities</div>
+          <a href="/docs/computer-control.html" class="sidebar-link active">Computer Control</a>
+          <a href="/docs/mcp.html" class="sidebar-link">MCP Connectors</a>
+          <a href="/docs/orchestration.html" class="sidebar-link">Orchestration</a>
+          <a href="/docs/video-editing.html" class="sidebar-link">Video Editing</a>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Security</div>
+          <a href="/docs/permissions.html" class="sidebar-link">Permissions</a>
+        </div>
+      </aside>
+
+      <div class="main">
+        <h1>Computer Control</h1>
+        <p class="subtitle">Let CORTEX see your screen, move the mouse, type text, and run scripts — turning natural language into direct computer actions.</p>
+
+        <h2>Overview</h2>
+        <p>Computer Control gives the model the ability to interact with your operating system. When you enable this capability, CORTEX can capture your screen, analyze what it sees, and perform actions like clicking buttons, filling out forms, or executing terminal commands.</p>
+        <p>This is powered by a lightweight accessibility and screen-capture layer running on the Python server. All processing stays on your machine — nothing is ever sent to the cloud unless you explicitly use a remote model.</p>
+
+        <h2>Screen Recording</h2>
+        <p>CORTEX can capture screenshots of your display or individual windows. The model uses these captures to understand the current UI state and decide what actions to take. Screenshots are held in memory only and are never transmitted over the network.</p>
+        <p>You can request a screen capture explicitly or let CORTEX decide when it needs to look at the screen:</p>
+        <pre><span class="cmd">$</span> "What's on my screen right now?"
+<span class="cmd">$</span> "Take a screenshot of the active window."
+<span class="cmd">$</span> "Read the text from the dialog that just popped up."</pre>
+
+        <div class="tip">
+          <strong>Privacy:</strong> Screen captures are ephemeral. They exist only in memory during the active session and are discarded the moment they are no longer needed. CORTEX never stores or logs raw screen data.
+        </div>
+
+        <h2>Mouse and Keyboard</h2>
+        <p>Once CORTEX sees the screen, it can move the cursor, click, drag, and type. This allows it to interact with any application just like a human would — no API integrations needed.</p>
+        <pre><span class="cmd">$</span> "Click the 'Continue' button in the installer."
+<span class="cmd">$</span> "Type my email into the login field and press Enter."
+<span class="cmd">$</span> "Select all the text in the editor and delete it."
+<span class="cmd">$</span> "Drag the file icon onto the upload area."</pre>
+
+        <div class="note">
+          <strong>Safety:</strong> Every mouse and keyboard action is logged in the activity panel. You can pause or cancel any action mid-execution. Use the <strong>Undo</strong> button to reverse the last action sequence if something goes wrong.
+        </div>
+
+        <h2>Script Execution</h2>
+        <p>CORTEX can run shell scripts, AppleScript, and keyboard shortcuts. This enables deeper automation such as installing packages, modifying system settings, or orchestrating multi-step workflows across applications.</p>
+        <pre><span class="cmd">$</span> "Run 'brew update' in the terminal."
+<span class="cmd">$</span> "Open System Settings and change the wallpaper."
+<span class="cmd">$</span> "Create a new folder on the Desktop called 'Screenshots'."
+<span class="cmd">$</span> "Run this AppleScript to resize all open windows."</pre>
+        <p>Script execution respects the permission boundaries you set. By default, destructive commands (like <code>rm</code>, <code>sudo</code>, or file deletion) require explicit confirmation before they run.</p>
+
+        <h2>Prerequisites</h2>
+        <h3>Accessibility Permission</h3>
+        <p>On macOS, Computer Control uses the Accessibility API to move the mouse, send keystrokes, and capture screen content. You must grant this permission when prompted or manually in <strong>System Settings → Privacy & Security → Accessibility</strong>.</p>
+        <p>CORTEX will show a permission banner if the required access has not been granted. The feature will remain disabled until the permission is approved.</p>
+
+        <div class="tip">
+          <strong>Tip:</strong> After granting Accessibility permission, restart the CORTEX server for the changes to take effect. You only need to do this once.
+        </div>
+
+        <h3>Screen Recording Permission</h3>
+        <p>If you want CORTEX to capture screenshots, you may also need to enable <strong>Screen Recording</strong> permission under the same Privacy & Security pane. This is separate from the Accessibility permission and must be granted independently.</p>
+
+        <h2>Common Use Cases</h2>
+        <pre><span class="comment"># Install Homebrew automatically</span>
+<span class="cmd">$</span> "Open the terminal and run the Homebrew install script."
+<span class="cmd">$</span> "Type my password when prompted and press Enter."</pre>
+        <pre><span class="comment"># Fill out a web form</span>
+<span class="cmd">$</span> "Go to the signup page at example.com."
+<span class="cmd">$</span> "Fill in 'john@example.com' and 'password123' and click Sign Up."</pre>
+        <pre><span class="comment"># Bulk rename files</span>
+<span class="cmd">$</span> "Rename all .png files in the Downloads folder to screenshot_1, screenshot_2, etc."</pre>
+
+        <div class="note">
+          <strong>Note:</strong> All automated actions are previewed in the chat panel before execution unless you enable auto-execute. Review each action carefully — especially script commands that modify the filesystem.
+        </div>
+
+        <div class="tip">
+          <strong>Tip:</strong> You can combine Computer Control with <a href="/docs/orchestration.html">Orchestration</a> to decompose complex multi-step tasks. CORTEX will plan, execute, and verify each phase automatically.
+        </div>
+
+        <h2>Related Docs</h2>
+        <div class="docs-grid">
+          <a href="/docs/permissions.html" class="docs-card">
+            <div class="card-label">Required Reading</div>
+            <h3>Permissions</h3>
+            <p>Understand every permission CORTEX needs and how to manage them securely.</p>
+          </a>
+          <a href="/docs/orchestration.html" class="docs-card">
+            <div class="card-label">Capability</div>
+            <h3>Orchestration</h3>
+            <p>Chain computer control actions into complex multi-step workflows.</p>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>&copy;2026 CORTEX</span>
+      <div class="footer-links">
+        <a href="/landing.html">Home</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1">GitHub</a>
+        <a href="/">App</a>
+      </div>
+    </footer>
+  </body>
+</html>
