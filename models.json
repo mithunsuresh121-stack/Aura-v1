@@ -1,0 +1,23 @@
+{
+  "default": "local",
+  "providers": {
+    "ollama": {
+      "type": "ollama",
+      "enabled": true,
+      "model": "llama3.2",
+      "base_url": "http://localhost:11434"
+    },
+    "openai": {
+      "type": "openai",
+      "enabled": false,
+      "model": "gpt-4o-mini",
+      "base_url": "https://api.openai.com/v1"
+    },
+    "gemini": {
+      "type": "gemini",
+      "enabled": false,
+      "model": "gemini-2.0-flash",
+      "api_key": ""
+    }
+  }
+}

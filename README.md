@@ -24,7 +24,15 @@ Your personal AI that runs entirely on your computer. No cloud dependency. No mo
 bash serve.sh --port 8081
 ```
 
-Then connect at `http://127.0.0.1:8081`. OpenAI-compatible API, so it works with any existing tool or client.
+Then connect at `http://127.0.0.1:8081`. OpenAI-compatible API.
+
+## Capabilities
+
+- **Multi-Model:** Switch between local (Ollama) and cloud (OpenAI, Gemini) at runtime
+- **Computer Control:** See your screen, click, type, drag, press keys, run scripts
+- **MCP Connectors:** Plug into GitHub, Drive, Slack, and any MCP-compatible service
+- **Agent Orchestration:** Lead agent decomposes complex tasks and delegates to sub-agents
+- **Per-User Memory:** Remembers your style and conversation history
 
 ## Status
 

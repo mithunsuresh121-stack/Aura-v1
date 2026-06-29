@@ -28,4 +28,6 @@ echo "  api:   http://127.0.0.1:$PORT/v1/chat/completions"
 python3.9 "$SERVER" \
     --model "$MODEL" \
     --port "$PORT" \
-    "$@"
+    "$@" \
+    --models-config "$BASE/models.json" \
+    --mcp-config "$BASE/mcp_config.json"

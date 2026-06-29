@@ -21,10 +21,18 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from user_store import UserStore
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from models.registry import ModelRegistry
+from mcp.manager import MCPManager
+from orchestration.orchestrator import Orchestrator
+from orchestration.sub_agent import SubAgent
+from computer.automation import ComputerAgent
+from server.capabilities import router as capabilities_router
+
 logger = logging.getLogger("aura")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 
-app = FastAPI(title="Aura API", version="0.1.0")
+app = FastAPI(title="Aura API", version="0.2.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -33,11 +41,18 @@ app.add_middleware(
     allow_headers=["Content-Type"],
 )
 
+app.include_router(capabilities_router)
+
 model_pipeline = None
 model_name = ""
 device = "cpu"
 user_store = None
 MAX_HISTORY_CONVOS = 5
+
+model_registry = None  # ModelRegistry
+mcp_manager = None    # MCPManager
+orchestrator = None   # Orchestrator
+computer_agent = None # ComputerAgent
 
 class ChatMessage(BaseModel):
     role: str
@@ -240,19 +255,53 @@ def _save_conversation(req: ChatCompletionRequest, prompt: str, response: str):
         logger.warning(f"Failed to save conversation: {e}")
 
 
+@app.on_event("startup")
+async def startup():
+    global user_store, model_pipeline, model_name, model_registry, mcp_manager, orchestrator, computer_agent
+
+    model_name_env = os.environ.get("AURA_MODEL", "gpt2")
+    user_dir_env = os.environ.get("AURA_USER_DIR", str(Path(__file__).resolve().parent.parent.parent / "users"))
+    models_config = os.environ.get("AURA_MODELS_CONFIG", "")
+    mcp_config = os.environ.get("AURA_MCP_CONFIG", "")
+
+    user_store = UserStore(user_dir_env)
+    load_model(model_name_env)
+
+    from server.capabilities import init as init_capabilities
+
+    model_registry = ModelRegistry(models_config)
+    model_registry.register_local("local", model_pipeline["model"], model_pipeline["tokenizer"], device)
+    logger.info(f"Models registered: {model_registry.available}")
+
+    mcp_manager = MCPManager(mcp_config)
+
+    orchestrator = Orchestrator(lead_model=model_registry.get("local"))
+
+    computer_agent = ComputerAgent()
+
+    init_capabilities(
+        model_registry=model_registry,
+        mcp=mcp_manager,
+        orch=orchestrator,
+        comp=computer_agent,
+    )
+    logger.info("Capabilities initialized: models, MCP, orchestration, computer control")
+
+
 if __name__ == "__main__":
-    import sys
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="gpt2")
     parser.add_argument("--port", type=int, default=8081)
     parser.add_argument("--host", type=str, default="127.0.0.1")
     parser.add_argument("--user-dir", type=str, default=None)
+    parser.add_argument("--models-config", type=str, default="", help="Path to models.json")
+    parser.add_argument("--mcp-config", type=str, default="", help="Path to MCP config")
     args = parser.parse_args()
 
-    user_dir = args.user_dir or str(Path(__file__).resolve().parent.parent.parent / "users")
-    user_store = UserStore(user_dir)
-    logger.info(f"User store: {user_dir}")
+    os.environ["AURA_MODEL"] = args.model
+    os.environ["AURA_USER_DIR"] = args.user_dir or str(Path(__file__).resolve().parent.parent.parent / "users")
+    os.environ["AURA_MODELS_CONFIG"] = args.models_config or ""
+    os.environ["AURA_MCP_CONFIG"] = args.mcp_config or ""
 
-    load_model(args.model)
     uvicorn.run(app, host=args.host, port=args.port, log_level="info")
