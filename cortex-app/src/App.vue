@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ChatView from './components/ChatView.vue'
 
-const serverUrl = ref('http://127.0.0.1:8080')
+const serverUrl = ref('http://127.0.0.1:8081')
 const connected = ref(false)
 const checking = ref(false)
 const modelLoading = ref(false)
@@ -19,6 +19,15 @@ const kbSources = ref<string[]>([])
 const identityMsg = ref('')
 const showHelp = ref(false)
 
+const availableModels = ref<string[]>([])
+const activeModel = ref('')
+const mcpEnabled = ref(false)
+const orchestrationEnabled = ref(false)
+const computerEnabled = ref(false)
+const videoEnabled = ref(false)
+const availableEditors = ref<string[]>([])
+const switchingModel = ref(false)
+
 async function checkConnection() {
   checking.value = true
   try {
@@ -27,7 +36,7 @@ async function checkConnection() {
     if (r.ok) {
       const data = await r.json()
       modelLoading.value = data.model_loaded === false
-      await Promise.all([fetchAgentState(), fetchImpState(), fetchKBState()])
+      await Promise.all([fetchAgentState(), fetchImpState(), fetchKBState(), fetchCapabilities()])
     } else {
       modelLoading.value = false
     }
@@ -36,6 +45,36 @@ async function checkConnection() {
     modelLoading.value = false
   }
   checking.value = false
+}
+
+async function fetchCapabilities() {
+  try {
+    const r = await fetch(`${serverUrl.value}/v1/capabilities`, { signal: AbortSignal.timeout(3000) })
+    if (r.ok) {
+      const c = await r.json()
+      availableModels.value = c.models?.available || []
+      activeModel.value = c.models?.default || ''
+      mcpEnabled.value = c.mcp?.enabled || false
+      orchestrationEnabled.value = c.orchestration?.enabled || false
+      computerEnabled.value = c.computer_control?.enabled || false
+      videoEnabled.value = c.video_editing?.enabled || false
+      availableEditors.value = c.video_editing?.editors || []
+    }
+  } catch {}
+}
+
+async function selectModel(model: string) {
+  switchingModel.value = true
+  try {
+    await fetch(`${serverUrl.value}/v1/models/select`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({model}),
+      signal: AbortSignal.timeout(5000),
+    })
+    activeModel.value = model
+  } catch {}
+  switchingModel.value = false
 }
 
 async function fetchAgentState() {
@@ -195,9 +234,25 @@ onUnmounted(stopPolling)
           <span class="row-value">{{ impLoss.toFixed(4) }}</span>
         </div>
       </div>
+      <div class="agent-panel" v-if="connected">
+        <div class="panel-label">CAPABILITIES</div>
+        <div class="agent-row">
+          <span class="row-label">Model</span>
+          <span class="row-value ready">{{ activeModel }}</span>
+        </div>
+        <div v-if="availableModels.length > 1" class="model-select">
+          <select v-model="activeModel" @change="selectModel(activeModel)" :disabled="switchingModel" class="input">
+            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
+          </select>
+        </div>
+        <div class="agent-row"><span class="row-label">Computer</span><span class="row-value" :class="{ ready: computerEnabled }">{{ computerEnabled ? 'on' : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">MCP</span><span class="row-value" :class="{ ready: mcpEnabled }">{{ mcpEnabled ? 'on' : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">Orchestration</span><span class="row-value" :class="{ ready: orchestrationEnabled }">{{ orchestrationEnabled ? 'on' : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">Video Edit</span><span class="row-value" :class="{ ready: videoEnabled }">{{ videoEnabled ? (availableEditors.length ? availableEditors.join(', ') : 'on') : 'off' }}</span></div>
+      </div>
       <div class="server-config">
         <label>Server URL</label>
-        <input v-model="serverUrl" placeholder="http://127.0.0.1:8080" class="input" />
+        <input v-model="serverUrl" placeholder="http://127.0.0.1:8081" class="input" />
       </div>
       <div class="sidebar-footer">
         <button class="btn-link" @click="showHelp = !showHelp">Help</button>
@@ -221,11 +276,15 @@ onUnmounted(stopPolling)
 
         <h4>Features</h4>
         <table class="help-table">
+          <tr><td><strong>Multi-Model</strong></td><td>Switch between local, Ollama, OpenAI, Gemini in the sidebar.</td></tr>
+          <tr><td><strong>Computer Control</strong></td><td>Aura can see your screen, click, type, press keys, and run scripts.</td></tr>
+          <tr><td><strong>MCP Connectors</strong></td><td>Connect to GitHub, Google Drive, Slack, and any MCP server.</td></tr>
+          <tr><td><strong>Orchestration</strong></td><td>Decompose complex tasks and delegate to specialized sub-agents.</td></tr>
+          <tr><td><strong>Video Editing</strong></td><td>Automate DaVinci Resolve, Premiere Pro, and CapCut.</td></tr>
           <tr><td><strong>Identity</strong></td><td>A learnable "self" vector that shapes responses. Save/Reset in sidebar.</td></tr>
-          <tr><td><strong>KB</strong></td><td>Knowledge base from ingested prompt files. Shows chunk count.</td></tr>
-          <tr><td><strong>Memory</strong></td><td>Permanent facts extracted from conversations (SQLite-backed).</td></tr>
-          <tr><td><strong>Self-Improvement</strong></td><td>Online learning — collects hard examples and fine-tunes the hypernetwork.</td></tr>
-          <tr><td><strong>Tools</strong></td><td>The agent can calculate, search knowledge, read files, and fetch web pages.</td></tr>
+          <tr><td><strong>KB</strong></td><td>Knowledge base from ingested prompt files.</td></tr>
+          <tr><td><strong>Memory</strong></td><td>Permanent facts extracted from conversations.</td></tr>
+          <tr><td><strong>Tools</strong></td><td>Calculate, search knowledge, read files, fetch web pages.</td></tr>
         </table>
 
         <h4>Tips</h4>
@@ -302,6 +361,8 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .identity-msg { font-size: 0.65rem; color: #4ade80; }
 .sidebar-footer { margin-top: auto; }
 .version { font-size: 0.7rem; color: #444; }
+.model-select { margin-top: 0.2rem; }
+.model-select select { width: 100%; font-size: 0.75rem; padding: 0.3rem 0.4rem; appearance: auto; }
 
 .main { flex: 1; display: flex; flex-direction: column; }
 
