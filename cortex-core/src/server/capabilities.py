@@ -21,6 +21,7 @@ from orchestration.sub_agent import SubAgent
 from computer.automation import ComputerAgent
 from computer.software import VideoEditAgent
 from security.grants import GrantStore
+from build.engine import BuildEngine
 
 logger = logging.getLogger("cortex.capabilities")
 
@@ -33,6 +34,7 @@ orchestrator: Optional[Orchestrator] = None
 computer: Optional[ComputerAgent] = None
 video_editor: Optional[VideoEditAgent] = None
 grant_store: Optional[GrantStore] = None
+build_engine: Optional[BuildEngine] = None
 
 
 def init(
@@ -42,14 +44,16 @@ def init(
     comp: Optional[ComputerAgent] = None,
     video: Optional[VideoEditAgent] = None,
     grants: Optional[GrantStore] = None,
+    build: Optional[BuildEngine] = None,
 ):
-    global registry, mcp_manager, orchestrator, computer, video_editor, grant_store
+    global registry, mcp_manager, orchestrator, computer, video_editor, grant_store, build_engine
     registry = model_registry
     mcp_manager = mcp
     orchestrator = orch
     computer = comp
     video_editor = video
     grant_store = grants
+    build_engine = build
 
 
 # --- Schemas ---
@@ -419,6 +423,87 @@ async def execute_edit(req: EditRequest):
     return result
 
 
+# --- Build / Code Generation ---
+
+class BuildPlanRequest(BaseModel):
+    task: str
+
+class BuildExecuteRequest(BaseModel):
+    step_index: int = 0
+
+class WorkspaceRequest(BaseModel):
+    path: str
+
+
+@router.post("/build/plan")
+async def build_plan(req: BuildPlanRequest):
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    plan = build_engine.plan(req.task)
+    return plan.to_dict()
+
+
+@router.post("/build/execute")
+async def build_execute(req: BuildExecuteRequest):
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    change = build_engine.execute_step(req.step_index)
+    if change is None:
+        raise HTTPException(400, "Invalid step index or no plan set")
+    return change.to_dict()
+
+
+@router.post("/build/execute-all")
+async def build_execute_all():
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    changes = build_engine.execute_all()
+    return {"count": len(changes), "changes": [c.to_dict() for c in changes]}
+
+
+@router.post("/build/undo")
+async def build_undo():
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    ok = build_engine.undo_last()
+    return {"status": "undone" if ok else "nothing_to_undo"}
+
+
+@router.get("/build/history")
+async def build_history():
+    if build_engine is None:
+        return {"changes": []}
+    return {"changes": build_engine.history()}
+
+
+@router.get("/build/plan")
+async def build_get_plan():
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    plan = build_engine.current_plan
+    if plan is None:
+        return {"task": "", "steps": []}
+    return plan.to_dict()
+
+
+@router.post("/build/diff")
+async def build_diff(req: WorkspaceRequest):
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    d = build_engine.diff(req.path)
+    if d is None:
+        return {"diff": "", "path": req.path}
+    return {"diff": d, "path": req.path}
+
+
+@router.post("/build/workspace")
+async def build_set_workspace(req: WorkspaceRequest):
+    if build_engine is None:
+        raise HTTPException(503, "Build engine not available")
+    build_engine.set_workspace(req.path)
+    return {"status": "ok", "workspace": str(build_engine.workspace)}
+
+
 # --- Agent State ---
 
 @router.get("/capabilities")
@@ -449,5 +534,10 @@ async def capabilities():
             "total": len(perms),
             "granted": sum(1 for p in perms if p["granted"]),
             "groups": grant_store.groups if grant_store else [],
+        },
+        "build": {
+            "enabled": build_engine is not None,
+            "changes": len(build_engine.history()) if build_engine else 0,
+            "workspace": str(build_engine.workspace) if build_engine else "",
         },
     }

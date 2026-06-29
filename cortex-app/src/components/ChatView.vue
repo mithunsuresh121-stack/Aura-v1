@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
 import { marked } from 'marked'
+import BuildPanel from './BuildPanel.vue'
 
 const props = defineProps<{
   serverUrl: string
@@ -62,6 +63,7 @@ const chatEnd = ref<HTMLElement | null>(null)
 const abortController = ref<AbortController | null>(null)
 const agentMode = ref(false)
 const agentState = ref<Record<string, any> | null>(null)
+const buildMode = ref(false)
 const showSidebar = ref(false)
 const temperature = ref(0.7)
 const topP = ref(1.0)
@@ -345,9 +347,10 @@ if (initialConv) {
         <button class="btn-icon" @click="showSidebar = !showSidebar" title="Conversations">
           &#9776;
         </button>
-        <div class="mode-toggle" @click="toggleAgentMode">
-          <span class="mode-option" :class="{ active: !agentMode }">Cortex</span>
-          <span class="mode-option" :class="{ active: agentMode }">Agent</span>
+        <div class="mode-toggle">
+          <span class="mode-option" :class="{ active: !agentMode && !buildMode }" @click="agentMode=false;buildMode=false">Chat</span>
+          <span class="mode-option" :class="{ active: buildMode }" @click="buildMode=!buildMode;agentMode=false">Build</span>
+          <span class="mode-option" :class="{ active: agentMode }" @click="agentMode=!agentMode;buildMode=false">Agent</span>
         </div>
         <input
           v-model="task"
@@ -397,6 +400,7 @@ if (initialConv) {
           <div v-if="conversations.length === 0" class="conv-empty">No conversations yet</div>
         </div>
       </div>
+      <BuildPanel v-if="buildMode" :server-url="serverUrl" />
       <div class="chat-main">
         <div class="messages" v-if="messages.length > 0" @click="handleMessageClick">
           <div

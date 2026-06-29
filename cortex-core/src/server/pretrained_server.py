@@ -29,6 +29,7 @@ from orchestration.sub_agent import SubAgent
 from computer.automation import ComputerAgent
 from computer.software import VideoEditAgent
 from security.grants import GrantStore
+from build.engine import BuildEngine
 from server.capabilities import router as capabilities_router
 
 logger = logging.getLogger("aura")
@@ -56,6 +57,7 @@ mcp_manager = None    # MCPManager
 orchestrator = None   # Orchestrator
 computer_agent = None # ComputerAgent
 grant_store = None   # GrantStore
+build_engine = None  # BuildEngine
 
 class ChatMessage(BaseModel):
     role: str
@@ -260,7 +262,7 @@ def _save_conversation(req: ChatCompletionRequest, prompt: str, response: str):
 
 @app.on_event("startup")
 async def startup():
-    global user_store, model_pipeline, model_name, model_registry, mcp_manager, orchestrator, computer_agent, grant_store
+    global user_store, model_pipeline, model_name, model_registry, mcp_manager, orchestrator, computer_agent, grant_store, build_engine
 
     model_name_env = os.environ.get("AURA_MODEL", "gpt2")
     user_dir_env = os.environ.get("AURA_USER_DIR", str(Path(__file__).resolve().parent.parent.parent / "users"))
@@ -288,6 +290,9 @@ async def startup():
 
     video_agent = VideoEditAgent()
 
+    build_engine = BuildEngine()
+    logger.info(f"Build engine initialized (workspace: {build_engine.workspace})")
+
     init_capabilities(
         model_registry=model_registry,
         mcp=mcp_manager,
@@ -295,8 +300,9 @@ async def startup():
         comp=computer_agent,
         video=video_agent,
         grants=grant_store,
+        build=build_engine,
     )
-    logger.info("Capabilities initialized: models, MCP, orchestration, computer control, video editing")
+    logger.info("Capabilities initialized: models, MCP, orchestration, computer control, video editing, build")
 
 
 if __name__ == "__main__":
