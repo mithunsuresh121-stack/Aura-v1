@@ -19,6 +19,7 @@ from mcp.manager import MCPManager
 from orchestration.orchestrator import Orchestrator
 from orchestration.sub_agent import SubAgent
 from computer.automation import ComputerAgent
+from computer.software import VideoEditAgent
 
 logger = logging.getLogger("cortex.capabilities")
 
@@ -29,6 +30,7 @@ registry: Optional[ModelRegistry] = None
 mcp_manager: Optional[MCPManager] = None
 orchestrator: Optional[Orchestrator] = None
 computer: Optional[ComputerAgent] = None
+video_editor: Optional[VideoEditAgent] = None
 
 
 def init(
@@ -36,12 +38,14 @@ def init(
     mcp: Optional[MCPManager] = None,
     orch: Optional[Orchestrator] = None,
     comp: Optional[ComputerAgent] = None,
+    video: Optional[VideoEditAgent] = None,
 ):
-    global registry, mcp_manager, orchestrator, computer
+    global registry, mcp_manager, orchestrator, computer, video_editor
     registry = model_registry
     mcp_manager = mcp
     orchestrator = orch
     computer = comp
+    video_editor = video
 
 
 # --- Schemas ---
@@ -311,6 +315,35 @@ async def computer_execute_plan(req: ExecutePlanRequest):
     return {"steps": len(req.steps), "results": results}
 
 
+# --- Software / Video Editing ---
+
+class EditRequest(BaseModel):
+    description: str
+    editor: str = ""
+    media_files: list[str] = Field(default_factory=list)
+    output_path: str = ""
+
+
+@router.get("/software/editors")
+async def list_editors():
+    if video_editor is None:
+        return {"editors": []}
+    return {"editors": video_editor.available_editors}
+
+
+@router.post("/software/edit")
+async def execute_edit(req: EditRequest):
+    if video_editor is None:
+        raise HTTPException(503, "Video editor agent not available")
+    result = await video_editor.execute_edit(
+        description=req.description,
+        editor_name=req.editor,
+        media_files=req.media_files,
+        output_path=req.output_path,
+    )
+    return result
+
+
 # --- Agent State ---
 
 @router.get("/capabilities")
@@ -331,5 +364,9 @@ async def capabilities():
         "computer_control": {
             "enabled": computer is not None,
             "vision": computer.screen.vision_model is not None if computer else False,
+        },
+        "video_editing": {
+            "enabled": video_editor is not None,
+            "editors": video_editor.available_editors if video_editor else [],
         },
     }

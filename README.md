@@ -30,6 +30,7 @@ Then connect at `http://127.0.0.1:8081`. OpenAI-compatible API.
 
 - **Multi-Model:** Switch between local (Ollama) and cloud (OpenAI, Gemini) at runtime
 - **Computer Control:** See your screen, click, type, drag, press keys, run scripts
+- **Video Editing:** Automate DaVinci Resolve, Premiere Pro, and CapCut — import media, edit, export finished files
 - **MCP Connectors:** Plug into GitHub, Drive, Slack, and any MCP-compatible service
 - **Agent Orchestration:** Lead agent decomposes complex tasks and delegates to sub-agents
 - **Per-User Memory:** Remembers your style and conversation history

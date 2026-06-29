@@ -27,6 +27,7 @@ from mcp.manager import MCPManager
 from orchestration.orchestrator import Orchestrator
 from orchestration.sub_agent import SubAgent
 from computer.automation import ComputerAgent
+from computer.software import VideoEditAgent
 from server.capabilities import router as capabilities_router
 
 logger = logging.getLogger("aura")
@@ -278,14 +279,16 @@ async def startup():
     orchestrator = Orchestrator(lead_model=model_registry.get("local"))
 
     computer_agent = ComputerAgent()
+    video_agent = VideoEditAgent()
 
     init_capabilities(
         model_registry=model_registry,
         mcp=mcp_manager,
         orch=orchestrator,
         comp=computer_agent,
+        video=video_agent,
     )
-    logger.info("Capabilities initialized: models, MCP, orchestration, computer control")
+    logger.info("Capabilities initialized: models, MCP, orchestration, computer control, video editing")
 
 
 if __name__ == "__main__":
