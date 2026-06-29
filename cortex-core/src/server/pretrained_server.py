@@ -28,6 +28,7 @@ from orchestration.orchestrator import Orchestrator
 from orchestration.sub_agent import SubAgent
 from computer.automation import ComputerAgent
 from computer.software import VideoEditAgent
+from security.grants import GrantStore
 from server.capabilities import router as capabilities_router
 
 logger = logging.getLogger("aura")
@@ -54,6 +55,7 @@ model_registry = None  # ModelRegistry
 mcp_manager = None    # MCPManager
 orchestrator = None   # Orchestrator
 computer_agent = None # ComputerAgent
+grant_store = None   # GrantStore
 
 class ChatMessage(BaseModel):
     role: str
@@ -258,7 +260,7 @@ def _save_conversation(req: ChatCompletionRequest, prompt: str, response: str):
 
 @app.on_event("startup")
 async def startup():
-    global user_store, model_pipeline, model_name, model_registry, mcp_manager, orchestrator, computer_agent
+    global user_store, model_pipeline, model_name, model_registry, mcp_manager, orchestrator, computer_agent, grant_store
 
     model_name_env = os.environ.get("AURA_MODEL", "gpt2")
     user_dir_env = os.environ.get("AURA_USER_DIR", str(Path(__file__).resolve().parent.parent.parent / "users"))
@@ -279,6 +281,11 @@ async def startup():
     orchestrator = Orchestrator(lead_model=model_registry.get("local"))
 
     computer_agent = ComputerAgent()
+
+    grants_path = os.environ.get("AURA_GRANTS_PATH", "")
+    grant_store = GrantStore(grants_path if grants_path else None)
+    logger.info(f"Grant store loaded ({len(grant_store.all())} permissions defined)")
+
     video_agent = VideoEditAgent()
 
     init_capabilities(
@@ -287,6 +294,7 @@ async def startup():
         orch=orchestrator,
         comp=computer_agent,
         video=video_agent,
+        grants=grant_store,
     )
     logger.info("Capabilities initialized: models, MCP, orchestration, computer control, video editing")
 

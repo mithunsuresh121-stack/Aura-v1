@@ -20,6 +20,7 @@ from orchestration.orchestrator import Orchestrator
 from orchestration.sub_agent import SubAgent
 from computer.automation import ComputerAgent
 from computer.software import VideoEditAgent
+from security.grants import GrantStore
 
 logger = logging.getLogger("cortex.capabilities")
 
@@ -31,6 +32,7 @@ mcp_manager: Optional[MCPManager] = None
 orchestrator: Optional[Orchestrator] = None
 computer: Optional[ComputerAgent] = None
 video_editor: Optional[VideoEditAgent] = None
+grant_store: Optional[GrantStore] = None
 
 
 def init(
@@ -39,13 +41,15 @@ def init(
     orch: Optional[Orchestrator] = None,
     comp: Optional[ComputerAgent] = None,
     video: Optional[VideoEditAgent] = None,
+    grants: Optional[GrantStore] = None,
 ):
-    global registry, mcp_manager, orchestrator, computer, video_editor
+    global registry, mcp_manager, orchestrator, computer, video_editor, grant_store
     registry = model_registry
     mcp_manager = mcp
     orchestrator = orch
     computer = comp
     video_editor = video
+    grant_store = grants
 
 
 # --- Schemas ---
@@ -331,6 +335,77 @@ async def list_editors():
     return {"editors": video_editor.available_editors}
 
 
+# --- Permission Grants ---
+
+class GrantRequest(BaseModel):
+    name: str
+
+class GrantGroupRequest(BaseModel):
+    group: str
+
+
+@router.get("/permissions")
+async def list_permissions():
+    if grant_store is None:
+        return {"permissions": [], "groups": []}
+    return {
+        "permissions": grant_store.all(),
+        "groups": grant_store.groups,
+    }
+
+
+@router.post("/permissions/grant")
+async def grant_permission(req: GrantRequest):
+    if grant_store is None:
+        raise HTTPException(503, "Grant store not available")
+    ok = grant_store.grant(req.name)
+    if not ok:
+        raise HTTPException(404, f"Permission '{req.name}' not found")
+    return {"status": "granted", "name": req.name}
+
+
+@router.post("/permissions/revoke")
+async def revoke_permission(req: GrantRequest):
+    if grant_store is None:
+        raise HTTPException(503, "Grant store not available")
+    ok = grant_store.revoke(req.name)
+    if not ok:
+        raise HTTPException(404, f"Permission '{req.name}' not found")
+    return {"status": "revoked", "name": req.name}
+
+
+@router.post("/permissions/grant-group")
+async def grant_group(req: GrantGroupRequest):
+    if grant_store is None:
+        raise HTTPException(503, "Grant store not available")
+    count = grant_store.grant_group(req.group)
+    return {"status": "granted", "group": req.group, "count": count}
+
+
+@router.post("/permissions/revoke-group")
+async def revoke_group(req: GrantGroupRequest):
+    if grant_store is None:
+        raise HTTPException(503, "Grant store not available")
+    count = grant_store.revoke_group(req.group)
+    return {"status": "revoked", "group": req.group, "count": count}
+
+
+@router.post("/permissions/grant-all")
+async def grant_all():
+    if grant_store is None:
+        raise HTTPException(503, "Grant store not available")
+    count = grant_store.grant_all()
+    return {"status": "granted_all", "count": count}
+
+
+@router.post("/permissions/revoke-all")
+async def revoke_all():
+    if grant_store is None:
+        raise HTTPException(503, "Grant store not available")
+    count = grant_store.revoke_all()
+    return {"status": "revoked_all", "count": count}
+
+
 @router.post("/software/edit")
 async def execute_edit(req: EditRequest):
     if video_editor is None:
@@ -348,6 +423,7 @@ async def execute_edit(req: EditRequest):
 
 @router.get("/capabilities")
 async def capabilities():
+    perms = grant_store.all() if grant_store else []
     return {
         "models": {
             "available": registry.available if registry else ["local"],
@@ -368,5 +444,10 @@ async def capabilities():
         "video_editing": {
             "enabled": video_editor is not None,
             "editors": video_editor.available_editors if video_editor else [],
+        },
+        "permissions": {
+            "total": len(perms),
+            "granted": sum(1 for p in perms if p["granted"]),
+            "groups": grant_store.groups if grant_store else [],
         },
     }

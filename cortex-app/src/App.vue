@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ChatView from './components/ChatView.vue'
-import CapabilitiesPanel from './components/CapabilitiesPanel.vue'
+import SettingsPanel from './components/SettingsPanel.vue'
 
 const serverUrl = ref('http://127.0.0.1:8081')
 const connected = ref(false)
@@ -19,6 +19,7 @@ const impLoss = ref(0)
 const kbSources = ref<string[]>([])
 const identityMsg = ref('')
 const showHelp = ref(false)
+const showSettings = ref(false)
 
 const availableModels = ref<string[]>([])
 const activeModel = ref('')
@@ -28,6 +29,8 @@ const computerEnabled = ref(false)
 const videoEnabled = ref(false)
 const availableEditors = ref<string[]>([])
 const switchingModel = ref(false)
+const permGranted = ref(0)
+const permTotal = ref(0)
 
 async function checkConnection() {
   checking.value = true
@@ -60,6 +63,8 @@ async function fetchCapabilities() {
       computerEnabled.value = c.computer_control?.enabled || false
       videoEnabled.value = c.video_editing?.enabled || false
       availableEditors.value = c.video_editing?.editors || []
+      permGranted.value = c.permissions?.granted ?? 0
+      permTotal.value = c.permissions?.total ?? 0
     }
   } catch {}
 }
@@ -235,24 +240,41 @@ onUnmounted(stopPolling)
           <span class="row-value">{{ impLoss.toFixed(4) }}</span>
         </div>
       </div>
-      <CapabilitiesPanel
-        v-if="connected"
-        :server-url="serverUrl"
-        :capabilities="{
-          availableModels, activeModel, computerEnabled,
-          mcpEnabled, orchestrationEnabled, videoEnabled, availableEditors,
-        }"
-        @select-model="selectModel"
-      />
+      <div class="agent-panel" v-if="connected">
+        <div class="panel-label">CAPABILITIES</div>
+        <div class="agent-row"><span class="row-label">Model</span><span class="row-value ready">{{ activeModel }}</span></div>
+        <div class="agent-row"><span class="row-label">Computer</span><span class="row-value" :class="{ ready: computerEnabled }">{{ computerEnabled ? 'on' : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">MCP</span><span class="row-value" :class="{ ready: mcpEnabled }">{{ mcpEnabled ? 'on' : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">Orchestrator</span><span class="row-value" :class="{ ready: orchestrationEnabled }">{{ orchestrationEnabled ? 'on' : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">Video Edit</span><span class="row-value" :class="{ ready: videoEnabled }">{{ videoEnabled ? (availableEditors.length ? availableEditors.join(', ') : 'on') : 'off' }}</span></div>
+        <div class="agent-row"><span class="row-label">Permissions</span><span class="row-value" :class="{ ready: permGranted === permTotal && permTotal > 0 }">{{ permGranted }}/{{ permTotal }}</span></div>
+      </div>
+      <div class="agent-panel" v-if="connected && (permTotal > 0)">
+        <div class="panel-label">GRANTS</div>
+        <div class="agent-row"><span class="row-label">Granted</span><span class="row-value" :class="{ ready: permGranted === permTotal && permTotal > 0 }">{{ permGranted }}/{{ permTotal }}</span></div>
+        <button class="btn-link" style="font-size:0.7rem;text-align:left" @click="showSettings = true">Manage in Settings</button>
+      </div>
       <div class="server-config">
         <label>Server URL</label>
         <input v-model="serverUrl" placeholder="http://127.0.0.1:8081" class="input" />
       </div>
       <div class="sidebar-footer">
+        <button class="btn-link" @click="showSettings = true">Settings</button>
         <button class="btn-link" @click="showHelp = !showHelp">Help</button>
         <span class="version">v0.1.0</span>
       </div>
     </aside>
+
+    <SettingsPanel
+      v-if="connected && showSettings"
+      :server-url="serverUrl"
+      :capabilities="{
+        availableModels, activeModel, computerEnabled,
+        mcpEnabled, orchestrationEnabled, videoEnabled, availableEditors,
+      }"
+      @select-model="selectModel"
+      @close="showSettings = false"
+    />
 
     <!-- Help Modal -->
     <div class="help-overlay" v-if="showHelp" @click.self="showHelp = false">
