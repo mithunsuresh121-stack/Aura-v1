@@ -234,33 +234,13 @@ onUnmounted(stopPolling)
 
       <!-- Capabilities -->
       <div class="section" v-if="connected">
-        <div class="section-title">Capabilities</div>
-        <div class="caps-grid">
-          <div class="caps-chip" :class="{ active: true }">
-            <svg class="chip-icon" viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z"/></svg>
-            <span class="chip-label">Model</span>
-            <span class="chip-value">{{ activeModel }}</span>
-          </div>
-          <div class="caps-chip" :class="{ active: computerEnabled }">
-            <svg class="chip-icon" viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M5.5 2a.5.5 0 0 1 .5.5V5h4V2.5a.5.5 0 0 1 1 0V5h1.5A1.5 1.5 0 0 1 14 6.5v7a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5v-7A1.5 1.5 0 0 1 3.5 5H5V2.5a.5.5 0 0 1 .5-.5z"/></svg>
-            <span class="chip-label">Desktop</span>
-            <span class="chip-status" :class="{ on: computerEnabled }">{{ computerEnabled ? 'on' : 'off' }}</span>
-          </div>
-          <div class="caps-chip" :class="{ active: mcpEnabled }">
-            <svg class="chip-icon" viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H2z"/></svg>
-            <span class="chip-label">MCP</span>
-            <span class="chip-status" :class="{ on: mcpEnabled }">{{ mcpEnabled ? 'on' : 'off' }}</span>
-          </div>
-          <div class="caps-chip" :class="{ active: orchestrationEnabled }">
-            <svg class="chip-icon" viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M2 2a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V2z"/></svg>
-            <span class="chip-label">Orch</span>
-            <span class="chip-status" :class="{ on: orchestrationEnabled }">{{ orchestrationEnabled ? 'on' : 'off' }}</span>
-          </div>
-          <div class="caps-chip" :class="{ active: videoEnabled }">
-            <svg class="chip-icon" viewBox="0 0 16 16" width="12" height="12"><path fill="currentColor" d="M2 3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3z"/></svg>
-            <span class="chip-label">Video</span>
-            <span class="chip-status" :class="{ on: videoEnabled }">{{ videoEnabled ? 'on' : 'off' }}</span>
-          </div>
+        <div class="section-title">CAPABILITIES</div>
+        <div class="caps-list">
+          <div class="caps-item"><span>Model</span><span class="mono">{{ activeModel }}</span></div>
+          <div class="caps-item"><span>Desktop</span><span class="badge" :class="{ on: computerEnabled }">{{ computerEnabled ? 'ON' : 'OFF' }}</span></div>
+          <div class="caps-item"><span>MCP</span><span class="badge" :class="{ on: mcpEnabled }">{{ mcpEnabled ? 'ON' : 'OFF' }}</span></div>
+          <div class="caps-item"><span>Orch</span><span class="badge" :class="{ on: orchestrationEnabled }">{{ orchestrationEnabled ? 'ON' : 'OFF' }}</span></div>
+          <div class="caps-item"><span>Video</span><span class="badge" :class="{ on: videoEnabled }">{{ videoEnabled ? 'ON' : 'OFF' }}</span></div>
         </div>
       </div>
 
@@ -381,21 +361,13 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 .item-value.active { color: #4ade80; }
 .item-value.idle { color: #facc15; }
 
-/* Capabilities grid */
-.caps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.25rem; }
-.caps-chip {
-  display: flex; align-items: center; gap: 0.25rem;
-  padding: 0.3rem 0.4rem; border-radius: 6px;
-  background: #0e0e1e; border: 1px solid #1a1a30; cursor: default;
-}
-.caps-chip.active { border-color: #2a2a4a; }
-.chip-icon { color: #555; flex-shrink: 0; opacity: 0.6; }
-.caps-chip.active .chip-icon { color: #7c5cfc; opacity: 1; }
-.chip-label { font-size: 0.6rem; color: #666; flex: 1; white-space: nowrap; }
-.caps-chip.active .chip-label { color: #a0a0c0; }
-.chip-value { font-size: 0.6rem; color: #4ade80; font-family: 'SF Mono', 'Fira Code', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 50px; }
-.chip-status { font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.03em; color: #444; padding: 0.05rem 0.25rem; border-radius: 3px; background: #0e0e1e; }
-.chip-status.on { color: #4ade80; background: #0a2a1a; }
+/* Capabilities list */
+.caps-list { display: flex; flex-direction: column; }
+.caps-item { display: flex; justify-content: space-between; align-items: center; padding: 0.2rem 0.35rem; font-size: 0.68rem; }
+.caps-item span:first-child { color: #888; }
+.caps-item .mono { color: #4ade80; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.62rem; }
+.caps-item .badge { font-size: 0.55rem; color: #444; letter-spacing: 0.04em; }
+.caps-item .badge.on { color: #4ade80; }
 
 /* Permission bar */
 .perm-bar { height: 3px; background: #1a1a30; border-radius: 2px; overflow: hidden; }
