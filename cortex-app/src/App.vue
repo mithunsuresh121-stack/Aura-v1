@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import ChatView from './components/ChatView.vue'
+import CapabilitiesPanel from './components/CapabilitiesPanel.vue'
 
 const serverUrl = ref('http://127.0.0.1:8081')
 const connected = ref(false)
@@ -234,22 +235,15 @@ onUnmounted(stopPolling)
           <span class="row-value">{{ impLoss.toFixed(4) }}</span>
         </div>
       </div>
-      <div class="agent-panel" v-if="connected">
-        <div class="panel-label">CAPABILITIES</div>
-        <div class="agent-row">
-          <span class="row-label">Model</span>
-          <span class="row-value ready">{{ activeModel }}</span>
-        </div>
-        <div v-if="availableModels.length > 1" class="model-select">
-          <select v-model="activeModel" @change="selectModel(activeModel)" :disabled="switchingModel" class="input">
-            <option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option>
-          </select>
-        </div>
-        <div class="agent-row"><span class="row-label">Computer</span><span class="row-value" :class="{ ready: computerEnabled }">{{ computerEnabled ? 'on' : 'off' }}</span></div>
-        <div class="agent-row"><span class="row-label">MCP</span><span class="row-value" :class="{ ready: mcpEnabled }">{{ mcpEnabled ? 'on' : 'off' }}</span></div>
-        <div class="agent-row"><span class="row-label">Orchestration</span><span class="row-value" :class="{ ready: orchestrationEnabled }">{{ orchestrationEnabled ? 'on' : 'off' }}</span></div>
-        <div class="agent-row"><span class="row-label">Video Edit</span><span class="row-value" :class="{ ready: videoEnabled }">{{ videoEnabled ? (availableEditors.length ? availableEditors.join(', ') : 'on') : 'off' }}</span></div>
-      </div>
+      <CapabilitiesPanel
+        v-if="connected"
+        :server-url="serverUrl"
+        :capabilities="{
+          availableModels, activeModel, computerEnabled,
+          mcpEnabled, orchestrationEnabled, videoEnabled, availableEditors,
+        }"
+        @select-model="selectModel"
+      />
       <div class="server-config">
         <label>Server URL</label>
         <input v-model="serverUrl" placeholder="http://127.0.0.1:8081" class="input" />
