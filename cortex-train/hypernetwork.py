@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Hypernetwork — generates LoRA adapters from task embeddings.
 - Input: task embedding vector (d_model-dim)

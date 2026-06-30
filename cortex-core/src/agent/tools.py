@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Tool-use scaffold for the agent.
 

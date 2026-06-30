@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Self-Improvement Engine — online learning loop for the hypernetwork.
 

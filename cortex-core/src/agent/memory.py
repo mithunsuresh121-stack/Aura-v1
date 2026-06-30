@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Conversation memory and fact storage for the agent.
 

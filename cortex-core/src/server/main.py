@@ -4,6 +4,7 @@ OpenAI-compatible HTTP server for the Cortex model.
 - GET  /v1/models — list available models
 - GET  /health — health check
 """
+from __future__ import annotations
 import json
 import os
 import re
@@ -14,7 +15,7 @@ import threading
 from contextlib import asynccontextmanager
 from pathlib import Path
 from collections import OrderedDict
-from typing import AsyncGenerator
+from typing import AsyncGenerator, Optional
 
 logger = logging.getLogger("cortex")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
@@ -172,9 +173,9 @@ class ChatCompletionRequest(BaseModel):
     temperature: float = Field(default=0.7, ge=0.0, le=2.0)
     top_p: float = Field(default=1.0, ge=0.0, le=1.0)
     stream: bool = Field(default=False)
-    stop: list[str] | None = None
-    task: str | None = Field(default=None, description="Task description for on-demand LoRA generation")
-    user_id: str | None = Field(default=None, description="User ID for per-user LoRA personalization")
+    stop: Optional[list[str]] = None
+    task: Optional[str] = Field(default=None, description="Task description for on-demand LoRA generation")
+    user_id: Optional[str] = Field(default=None, description="User ID for per-user LoRA personalization")
 
 
 class ModelInfo(BaseModel):
