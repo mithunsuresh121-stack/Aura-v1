@@ -236,27 +236,32 @@ def load_model(ckpt_path: str | None, data_dir: str, quantize_mode: str = "none"
         logger.info(f"Quantizing model to {mode_name}...")
         model.quantize(quantize_mode)
 
-    tok_path = Path(data_dir) / "tokenizer.json"
-    if not tok_path.exists():
-        raise RuntimeError(
-            f"Tokenizer not found at {tok_path}. "
-            "Run `python prepare_data.py` to train a tokenizer, "
-            "or set CORTEX_DATA_DIR to a directory containing tokenizer.json"
-        )
-    from tokenizers import Tokenizer as HFTokenizer
     global tokenizer
-    tokenizer = HFTokenizer.from_file(str(tok_path))
+    tok_type = ckpt.get("tokenizer", "") if ckpt_path and Path(ckpt_path).exists() else ""
+    if tok_type == "gpt2":
+        from tokenizers import Tokenizer as HFTokenizer
+        tokenizer = HFTokenizer.from_pretrained("gpt2")
+        logger.info(f"  using GPT-2 tokenizer (vocab={tokenizer.get_vocab_size()})")
+    else:
+        tok_path = Path(data_dir) / "tokenizer.json"
+        if not tok_path.exists():
+            raise RuntimeError(
+                f"Tokenizer not found at {tok_path}. "
+                "Run `python prepare_data.py` to train a tokenizer, "
+                "or set CORTEX_DATA_DIR to a directory containing tokenizer.json"
+            )
+        from tokenizers import Tokenizer as HFTokenizer
+        tokenizer = HFTokenizer.from_file(str(tok_path))
+        tok_vocab = tokenizer.get_vocab_size()
+        model_vocab = model.output.weight.shape[0]
+        if tok_vocab != model_vocab:
+            raise RuntimeError(
+                f"Tokenizer vocab size ({tok_vocab}) does not match "
+                f"model vocab size ({model_vocab}). "
+                "Use a tokenizer that matches the model's training configuration."
+            )
+        logger.info(f"  tokenizer vocab={tok_vocab} matches model ✓")
     model.tokenizer = tokenizer
-
-    tok_vocab = tokenizer.get_vocab_size()
-    model_vocab = model.output.weight.shape[0]
-    if tok_vocab != model_vocab:
-        raise RuntimeError(
-            f"Tokenizer vocab size ({tok_vocab}) does not match "
-            f"model vocab size ({model_vocab}). "
-            "Use a tokenizer that matches the model's training configuration."
-        )
-    logger.info(f"  tokenizer vocab={tok_vocab} matches model ✓")
 
     logger.info(f"  {sum(p.numel() for p in model.parameters()):,} params loaded")
 

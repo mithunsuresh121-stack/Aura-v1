@@ -7,7 +7,9 @@ DATA_DIR="$BASE/cortex-train/data"
 SERVER="$BASE/cortex-core/src/server/main.py"
 
 # Pick the best available checkpoint
-if [ -f "$CKPT_DIR/best.pt" ]; then
+if [ -f "$CKPT_DIR/distilled_final.pt" ]; then
+    CKPT="$CKPT_DIR/distilled_final.pt"
+elif [ -f "$CKPT_DIR/best.pt" ]; then
     CKPT="$CKPT_DIR/best.pt"
 elif [ -f "$CKPT_DIR/final.pt" ]; then
     CKPT="$CKPT_DIR/final.pt"
