@@ -83,8 +83,16 @@ class MouseController:
                 _run(["xdotool", "mousemove", str(x), str(y)])
             _run(["xdotool", "click", btn])
         elif SYSTEM == "Windows":
-            _run(["powershell", "-Command",
-                  f'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point({x or 0},{y or 0}); [System.Windows.Forms.SendKeys]::SendWait("%{{LEFT}}")'])
+            if x is not None and y is not None:
+                _run(["powershell", "-Command",
+                      f'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point({x},{y})'])
+            import ctypes
+            try:
+                btn_map = {"left": 0, "middle": 4, "right": 2}
+                ctypes.windll.user32.mouse_event(2, 0, 0, 0, 0)  # down
+                ctypes.windll.user32.mouse_event(4, 0, 0, 0, 0)  # up
+            except Exception as e:
+                logger.warning(f"Windows click failed: {e}")
 
     def double_click(self, x: Optional[int] = None, y: Optional[int] = None):
         if HAS_PYAUTOGUI:
