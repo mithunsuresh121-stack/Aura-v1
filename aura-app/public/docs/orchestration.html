@@ -1,0 +1,289 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Orchestration — AURA Docs</title>
+    <link rel="icon" href="data:," />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Inter, sans-serif;
+        background: #080812;
+        color: #e8e8f0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        overflow-x: hidden;
+      }
+      ::selection { background: rgba(124, 92, 252, 0.25); }
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: #1e1e36; border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: #2a2a46; }
+      a { color: #7c5cfc; text-decoration: none; }
+      a:hover { color: #9b7eff; }
+
+      .header {
+        position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 0.65rem 2rem;
+        background: rgba(8, 8, 18, 0.7);
+        backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+        border-bottom: 1px solid rgba(30, 30, 54, 0.4);
+      }
+      .header-logo {
+        display: flex; align-items: center; gap: 0.5rem;
+        font-size: 0.95rem; font-weight: 700; color: #e8e8f0;
+      }
+      .header-logo .icon {
+        width: 22px; height: 22px; border-radius: 8px;
+        background: linear-gradient(135deg, #7c5cfc, #5a3cfc);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.7rem; color: #fff; font-weight: 700;
+        box-shadow: 0 2px 8px rgba(124, 92, 252, 0.3);
+      }
+      .header-nav { display: flex; align-items: center; gap: 1.25rem; }
+      .header-nav a { font-size: 0.8rem; color: #686880; transition: color 0.15s; }
+      .header-nav a:hover { color: #e8e8f0; }
+      .header-nav a.active { color: #c084fc; }
+
+      .layout { display: flex; padding-top: 52px; min-height: 100vh; }
+
+      .sidebar {
+        width: 220px; flex-shrink: 0;
+        border-right: 1px solid rgba(30, 30, 54, 0.3);
+        padding: 1.5rem 0; overflow-y: auto; position: sticky; top: 52px;
+        height: calc(100vh - 52px); background: rgba(8, 8, 18, 0.5);
+      }
+      .sidebar-section { margin-bottom: 1.25rem; }
+      .sidebar-section-title {
+        font-size: 0.58rem; text-transform: uppercase; letter-spacing: 0.08em;
+        color: #484860; font-weight: 700; padding: 0 1rem 0.4rem;
+      }
+      .sidebar-link {
+        display: block; padding: 0.3rem 1rem; font-size: 0.78rem; color: #686880;
+        border-left: 2px solid transparent; transition: all 0.12s;
+        position: relative;
+      }
+      .sidebar-link:hover { background: rgba(255,255,255,0.02); color: #8888a0; }
+      .sidebar-link.active {
+        color: #c084fc; border-left-color: #7c5cfc;
+        background: linear-gradient(90deg, rgba(124, 92, 252, 0.06), transparent);
+      }
+
+      .main { flex: 1; max-width: 780px; padding: 2.5rem 2.5rem 4rem; }
+      .main h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.4rem; }
+      .main h1 .highlight {
+        background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .main .subtitle { font-size: 0.92rem; color: #686880; line-height: 1.6; margin-bottom: 2rem; }
+      .main h2 {
+        font-size: 1.2rem; font-weight: 600; margin: 2rem 0 0.6rem;
+        padding-bottom: 0.35rem; border-bottom: 1px solid rgba(30, 30, 54, 0.25);
+        color: #d0d0e0;
+      }
+      .main h3 { font-size: 0.95rem; font-weight: 600; margin: 1.25rem 0 0.4rem; color: #b0b0c8; }
+      .main p { font-size: 0.85rem; color: #808098; line-height: 1.7; margin-bottom: 0.85rem; }
+      .main ul, .main ol { padding-left: 1.25rem; margin-bottom: 0.85rem; }
+      .main li { font-size: 0.85rem; color: #808098; line-height: 1.65; margin-bottom: 0.2rem; }
+      .main li strong { color: #b0b0c8; }
+      .main code {
+        background: rgba(255,255,255,0.04); padding: 0.1rem 0.35rem;
+        border-radius: 4px; font-size: 0.8rem; font-family: 'SF Mono', 'Fira Code', monospace;
+      }
+      .main pre {
+        background: rgba(0,0,0,0.3); border: 1px solid rgba(30, 30, 54, 0.35);
+        border-radius: 10px; padding: 0.8rem 1rem; overflow-x: auto;
+        margin: 0.65rem 0; font-size: 0.76rem; color: #9090a8;
+        font-family: 'SF Mono', 'Fira Code', monospace; line-height: 1.5;
+      }
+      .main pre .cmd { color: #4ade80; }
+      .main pre .comment { color: #484860; }
+      .main .tip {
+        background: rgba(124, 92, 252, 0.05); border: 1px solid rgba(124, 92, 252, 0.12);
+        border-radius: 10px; padding: 0.75rem 1rem; margin: 1rem 0;
+        font-size: 0.8rem; color: #9090a8; line-height: 1.5;
+        border-left: 3px solid #7c5cfc;
+      }
+      .main .tip strong { color: #c084fc; }
+      .main .note {
+        background: rgba(74, 222, 128, 0.04); border: 1px solid rgba(74, 222, 128, 0.1);
+        border-radius: 10px; padding: 0.75rem 1rem; margin: 1rem 0;
+        font-size: 0.8rem; color: #9090a8; line-height: 1.5;
+        border-left: 3px solid #4ade80;
+      }
+      .main .note strong { color: #4ade80; }
+
+      .docs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin: 1.25rem 0; }
+      .docs-card {
+        background: rgba(18, 18, 34, 0.4); border: 1px solid rgba(30, 30, 54, 0.4);
+        border-radius: 12px; padding: 1.1rem; transition: all 0.2s;
+        display: block; color: #e8e8f0; border-top: 2px solid rgba(30, 30, 54, 0.4);
+      }
+      .docs-card:hover {
+        background: rgba(18, 18, 34, 0.7);
+        border-color: rgba(124, 92, 252, 0.2);
+        border-top-color: #7c5cfc; transform: translateY(-2px);
+      }
+      .docs-card .card-label {
+        font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.06em;
+        color: #7c5cfc; font-weight: 700; margin-bottom: 0.25rem;
+      }
+      .docs-card h3 { font-size: 0.85rem; font-weight: 600; margin-bottom: 0.2rem; color: #e0e0f0; }
+      .docs-card p { font-size: 0.72rem; color: #686880; line-height: 1.4; }
+
+      .footer {
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 1.25rem 2rem; border-top: 1px solid rgba(30, 30, 54, 0.3);
+        font-size: 0.72rem; color: #484860; margin-left: 220px;
+      }
+      .footer-links { display: flex; gap: 1.25rem; }
+      .footer-links a { color: #484860; transition: color 0.15s; }
+      .footer-links a:hover { color: #686880; }
+
+      @media (max-width: 768px) {
+        .sidebar { display: none; }
+        .footer { margin-left: 0; }
+        .main { padding: 1.5rem; }
+        .docs-grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <div class="header-logo">
+        <div class="icon">C</div>
+        <span>AURA</span>
+      </div>
+      <nav class="header-nav">
+        <a href="/landing.html">Home</a>
+        <a href="/">App</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Getting Started</div>
+          <a href="/docs/index.html" class="sidebar-link">Overview</a>
+          <a href="/docs/chat.html" class="sidebar-link">Multi-Model Chat</a>
+          <a href="/docs/build.html" class="sidebar-link">Build Mode</a>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Capabilities</div>
+          <a href="/docs/computer-control.html" class="sidebar-link">Computer Control</a>
+          <a href="/docs/terminal.html" class="sidebar-link">Terminal</a>
+          <a href="/docs/mcp.html" class="sidebar-link">MCP Connectors</a>
+          <a href="/docs/orchestration.html" class="sidebar-link active">Orchestration</a>
+          <a href="/docs/video-editing.html" class="sidebar-link">Video Editing</a>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Security</div>
+          <a href="/docs/permissions.html" class="sidebar-link">Permissions</a>
+        </div>
+      </aside>
+
+      <div class="main">
+        <h1>Orchestration</h1>
+        <p class="subtitle">Decompose complex tasks into sub-steps, delegate to specialised agents, and review results — all coordinated by AURA.</p>
+
+        <h2>Overview</h2>
+        <p>Orchestration is AURA's ability to break a high-level request into a structured multi-step plan, assign each step to the most capable sub-agent, and synthesise the results into a coherent final answer. Unlike a single-turn chat response, orchestration models the task as a directed graph of interdependent operations.</p>
+        <p>This is especially useful for tasks that require multiple skills — writing code, running shell commands, browsing the web, reading files, and then combining the output — all without you having to micromanage each step.</p>
+
+        <h2>How It Works</h2>
+        <p>When you submit a complex request, AURA runs through five phases:</p>
+        <ol>
+          <li><strong>Analyse</strong> — The primary model examines your request and identifies the individual steps needed to fulfil it.</li>
+          <li><strong>Plan</strong> — A dependency graph is built so steps can run in parallel where possible.</li>
+          <li><strong>Delegate</strong> — Each step is dispatched to the most capable sub-agent (code, research, file ops, shell, etc.).</li>
+          <li><strong>Review</strong> — Results are checked against the plan. Failed steps may be retried or re-planned.</li>
+          <li><strong>Synthesise</strong> — A final summary is assembled from all sub-task results.</li>
+        </ol>
+        <p>Orchestration runs entirely on the backend. You describe a task and AURA responds with the decomposed plan and final results in the chat.</p>
+
+        <h2>When to Use Orchestration</h2>
+        <p>Orchestration shines when a task requires coordination across multiple capabilities:</p>
+        <ul>
+          <li>Building a full-stack feature (backend + frontend + tests)</li>
+          <li>Researching a topic and then generating a structured report with citations</li>
+          <li>Refactoring a codebase with cross-file changes</li>
+          <li>Setting up a project from scratch — scaffold, install dependencies, configure, verify</li>
+          <li>Data pipelines that involve extraction, transformation, and visualisation</li>
+        </ul>
+        <p>For simple single-step requests (e.g., "explain this function"), orchestration adds unnecessary overhead. Use Chat mode instead.</p>
+
+        <h2>Example</h2>
+        <p>Suppose you ask AURA to build a full-stack microblogging app. The orchestration loop might decompose this into:</p>
+        <ol>
+          <li>Scaffold the FastAPI backend project structure</li>
+          <li>Set up SQLite database with user and post models</li>
+          <li>Implement authentication endpoints (register, login, JWT)</li>
+          <li>Build the Vue 3 frontend project with routing</li>
+          <li>Create the feed page and compose box components</li>
+          <li>Write API integration layer in the frontend</li>
+          <li>Run tests on the backend API</li>
+          <li>Verify the full stack builds and starts</li>
+        </ol>
+        <p>Each step is delegated to an appropriate agent. Steps 1 and 4 can run in parallel. Step 3 depends on step 2. Step 8 depends on everything else. AURA manages all of this automatically:</p>
+        <pre><span class="cmd">$</span> Build a microblogging app with a FastAPI backend, SQLite
+<span class="cmd">$</span> database, and a Vue 3 frontend. Include user auth, a
+<span class="cmd">$</span> feed page, and a compose box. Write tests for the API.</pre>
+        <p>AURA returns the decomposed plan and results directly in the chat. Each completed step is marked with a green check. If a test step fails, AURA may retry it or ask you for guidance before continuing.</p>
+
+        <div class="tip">
+          <strong>Tip:</strong> You can chain orchestration with Build mode. Start with an orchestration request like "build a landing page", and AURA will plan the work and hand off file creation to the Build mode agent automatically. This combines the high-level planning of orchestration with the precise diff-based editing of Build mode.
+        </div>
+
+        <div class="note">
+          <strong>Note:</strong> Orchestration uses additional context tokens because the plan graph and sub-agent results are held in memory. For very large tasks, consider breaking the work into separate orchestration sessions. Performance depends on your underlying model — larger models (70B+) handle complex orchestration more reliably.
+        </div>
+
+        <h2>Tips</h2>
+        <ul>
+          <li><strong>Be explicit</strong> — The more detail you give in your request, the better AURA can decompose the task. Include file paths, technology choices, and acceptance criteria.</li>
+          <li><strong>Review the plan</strong> — AURA shows the proposed plan in the chat before execution starts. Review it and reorder or remove steps if needed.</li>
+          <li><strong>Use Build mode for file editing</strong> — For tasks that primarily involve writing or editing source code, consider using Build mode directly. Orchestration is best when the task spans multiple domains (code + research + shell).</li>
+          <li><strong>Monitor token usage</strong> — Each sub-agent call consumes tokens from your model provider. For cloud models, orchestration can add up quickly. Use local models for experimentation.</li>
+          <li><strong>Pause and resume</strong> — You can pause orchestration mid-execution, inspect interim results, and resume. This is useful for approving generated code before it continues.</li>
+        </ul>
+
+        <h2>Related Docs</h2>
+        <div class="docs-grid">
+          <a href="/docs/build.html" class="docs-card">
+            <div class="card-label">Guide</div>
+            <h3>Build Mode</h3>
+            <p>Plan and execute code changes. Generate diffs, review, and undo with a single click.</p>
+          </a>
+          <a href="/docs/chat.html" class="docs-card">
+            <div class="card-label">Guide</div>
+            <h3>Multi-Model Chat</h3>
+            <p>Chat with local and cloud models. Switch providers mid-conversation. Agent mode for tool use.</p>
+          </a>
+          <a href="/docs/mcp.html" class="docs-card">
+            <div class="card-label">Capability</div>
+            <h3>MCP Connectors</h3>
+            <p>Connect to any MCP-compatible server for extended tool access.</p>
+          </a>
+          <a href="/docs/computer-control.html" class="docs-card">
+            <div class="card-label">Capability</div>
+            <h3>Computer Control</h3>
+            <p>Let AURA see your screen, click buttons, type text, and run scripts.</p>
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <span>&copy;2026 AURA</span>
+      <div class="footer-links">
+        <a href="/landing.html">Home</a>
+        <a href="https://github.com/mithunsuresh121-stack/Aura-v1">GitHub</a>
+        <a href="/">App</a>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "name": "aura-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "vite --open",
+    "server": "python3 ../aura-core/src/server/main.py --port 8080",
+    "start:all": "concurrently \"npm run server\" \"npm run dev\""
+  },
+  "dependencies": {
+    "anser": "^2.3.5",
+    "marked": "^18.0.5",
+    "vue": "^3.5.38"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.11.3",
+    "@types/node": "^24.13.2",
+    "@vitejs/plugin-vue": "^6.0.7",
+    "@vue/tsconfig": "^0.9.1",
+    "concurrently": "^9.1.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.1.0",
+    "vue-tsc": "^3.3.5"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "screen_recording": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Computer control needs to capture your screen to see what's visible"
+  },
+  "accessibility": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Computer control needs to control your mouse and keyboard to interact with apps"
+  },
+  "file_system": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Video editing, script execution, and file operations need file access"
+  },
+  "automation": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Automating apps like DaVinci Resolve, Premiere, CapCut requires automation control"
+  },
+  "script_execution": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Some complex automations require executing scripts directly"
+  },
+  "video_editing": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Video editor agents need to control video editing software"
+  },
+  "photo_editing": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Future photo editing capabilities"
+  },
+  "sound_editing": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Future audio editing capabilities"
+  },
+  "network_access": {
+    "granted": false,
+    "granted_at": null,
+    "purpose": "Premium cloud models and MCP servers need network access"
+  }
+}

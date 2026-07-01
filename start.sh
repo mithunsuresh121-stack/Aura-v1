@@ -15,7 +15,7 @@ SERVER_PID=$!
 sleep 3
 
 # Start frontend dev server
-cd "$SCRIPT_DIR/cortex-app"
+cd "$SCRIPT_DIR/aura-app"
 npx vite --host 127.0.0.1 --port 5173 &
 VITE_PID=$!
 

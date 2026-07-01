@@ -1,0 +1,33 @@
+#!/bin/bash
+# Launch a pretrained HuggingFace model with the same API as the cortex server.
+# Usage: ./serve_pretrained.sh [--model MODEL] [--port PORT]
+#
+# Default model: TinyLlama-1.1B (runs on CPU, ~2-3GB RAM, ~10 tok/s)
+# Other options:
+#   --model "TinyLlama/TinyLlama-1.1B-Chat-v1.0"  (1.1B params, best quality)
+#   --model "microsoft/phi-1_5"                     (1.3B params)
+#   --model "Qwen/Qwen2.5-0.5B-Instruct"            (0.5B params, fastest)
+
+BASE="$(cd "$(dirname "$0")/.." && pwd)"
+SERVER="$BASE/aura-core/src/server/pretrained_server.py"
+
+# Default: GPT-2 (124M params, ~500MB, 3-5 tok/s on CPU — fastest for Intel Macs)
+# Alternatives:
+#   Qwen/Qwen2.5-0.5B-Instruct              (0.5B params, ~1GB, 0.5 tok/s)
+#   TinyLlama/TinyLlama-1.1B-Chat-v1.0      (1.1B params, ~2GB, 0.2 tok/s)
+#   microsoft/phi-1_5                        (1.3B params, ~2.5GB, 0.2 tok/s)
+MODEL="${AURA_PRETRAINED_MODEL:-gpt2}"
+
+PORT="${AURA_PORT:-8081}"
+
+echo "Starting Aura server:"
+echo "  model: $MODEL"
+echo "  port:  $PORT"
+echo "  api:   http://127.0.0.1:$PORT/v1/chat/completions"
+
+python3.9 "$SERVER" \
+    --model "$MODEL" \
+    --port "$PORT" \
+    "$@" \
+    --models-config "$BASE/models.json" \
+    --mcp-config "$BASE/mcp_config.json"
